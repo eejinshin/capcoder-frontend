@@ -32,6 +32,8 @@ type PredictionRecord = {
 type UserInfo = {
   gender: 'male' | 'female';
   birthYear: string;
+  birthMonth: string; 
+  birthDay: string; 
   height: string;
   weight: string;
 };
@@ -88,18 +90,89 @@ const GlucoseStatusGraph = ({ value, status }: { value: number; status: GlucoseS
  */
 const LoginPage = ({ onPageChange, onLoginSuccess }: {
   onPageChange: (page: ModalState) => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (userInfo: UserInfo) => void;
 }) => {
   const [loginId, setLoginId] = useState('');
   const [loginPw, setLoginPw] = useState('');
 
-  const handleLogin = () => {
-    // TODO: 백엔드 로그인 API (POST /api/v1/auth/login) 호출
-    console.log('로그인 시도:', { loginId, loginPw });
-    // 가짜 로그인 성공
-    alert('로그인 성공! (임시)');
-    onLoginSuccess(); // App.tsx의 로그인 성공 처리 함수 호출
-  };
+  // 함수를 async로 변경
+// [수정됨] 함수를 async로 변경
+  const handleLogin = async () => {
+    console.log('로그인 시도:', { loginId, loginPw });
+
+    try {
+      // --- 1단계: 로그인 API 호출 (토큰 받기) ---
+      const loginResponse = await fetch('https://capcoder-backendauth.onrender.com/api/member/loginAction.do', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: loginId,
+          password: loginPw,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        // 로그인 실패 (아이디, 비번 틀림 등)
+        alert('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
+        return; // 여기서 함수 종료
+      }
+
+      // 1단계 성공: 토큰 추출
+      const loginData = await loginResponse.json();
+      const token = loginData.token;
+
+      if (!token) {
+        alert('로그인에 성공했으나 토큰을 받지 못했습니다.');
+        return;
+      }
+      
+      // [중요] 토큰을 브라우저에 저장 (로그인 유지용)
+      localStorage.setItem('authToken', token);
+
+      // --- 2단계: 유저 정보 API 호출 (토큰 보내기) ---
+      const userInfoResponse = await fetch('https://capcoder-backendauth.onrender.com/api/member/userInfo.do', {
+        method: 'GET',
+        headers: {
+          // JWT 인증 표준 방식: 'Bearer {토큰}'
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+
+      if (!userInfoResponse.ok) {
+        throw new Error('토큰은 받았으나 유저 정보 로드에 실패했습니다.');
+      }
+      
+      // 2단계 성공: 유저 정보 추출
+      const userInfoData = await userInfoResponse.json();
+      console.log('백엔드 /userInfo.do 에서 받은 데이터:', userInfoData);
+
+      // API 응답(userInfoData)을 프론트엔드 타입(UserInfo)에 맞게 가공
+      const [year, month, day] = (userInfoData.birthDate || '---').split('-');
+      
+      const userInfoFromBackend: UserInfo = {
+        // API가 'female'을 주면 'female', 그 외(male 등)는 'male'
+        gender: userInfoData.gender === 'female' ? 'female' : 'male',
+        // [수정] Y, M, D를 각각 저장
+        birthYear: year !== '-' ? year : '',
+        birthMonth: month !== '-' ? month : '',
+        birthDay: day !== '-' ? day : '',
+        // API가 숫자를 줘도 String()으로 변환 (타입 일치)
+        height: String(userInfoData.height || ''),
+        weight: String(userInfoData.weight || ''),
+      };
+      
+      alert('로그인 성공!');
+      onLoginSuccess(userInfoFromBackend); // App.tsx에 '최종' 유저 정보 전달
+
+    } catch (error) {
+      console.error('로그인 처리 중 오류:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+      // 오류 발생 시 혹시 모를 토큰 제거
+      localStorage.removeItem('authToken'); 
+    }
+  };
 
   return (
     <>
@@ -161,6 +234,9 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
     id: '',
     pw: '',
   });
+  
+  const [idCheck, setIdCheck] = useState({ checked: false, available: false, message: '' });
+  const [isCheckingId, setIsCheckingId] = useState(false);
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -168,11 +244,61 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
       ...signupForm,
       [name]: value,
     });
+
+    if (name === 'id') {
+      setIdCheck({ checked: false, available: false, message: '' });
+    }
   };
+
+  // --- [ ▼ 여기에 새 함수 통째로 추가 ▼ ] ---
+  // ID 중복 확인 함수
+  const handleIdCheck = async () => {
+    if (!signupForm.id) {
+      alert('아이디를 먼저 입력해주세요.');
+      return;
+    }
+    
+    setIsCheckingId(true);
+    setIdCheck({ checked: false, available: false, message: '확인 중...' });
+
+    try {
+      // 백엔드가 @RequestParam으로 받으므로 URLSearchParams를 사용
+      const params = new URLSearchParams();
+      params.append('userId', signupForm.id);
+
+      const response = await fetch('https://capcoder-backendauth.onrender.com/api/member/checkId', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
+
+      if (response.ok) {
+        const data = await response.json(); // { exists: false, available: true }
+        if (data.available) {
+          setIdCheck({ checked: true, available: true, message: '사용 가능한 아이디입니다.' });
+        } else {
+          setIdCheck({ checked: true, available: false, message: '이미 사용 중인 아이디입니다.' });
+        }
+      } else {
+        setIdCheck({ checked: false, available: false, message: '중복 확인 중 오류 발생' });
+      }
+    } catch (error) {
+      console.error('ID check network error:', error);
+      setIdCheck({ checked: false, available: false, message: '네트워크 오류' });
+    }
+    setIsCheckingId(false);
+  };
 
   // --- [415 오류 수정] ---
   // handleSignup 함수를 JSON 방식으로 수정
   const handleSignup = async () => {
+      // ID 중복 확인을 통과했는지 검사
+      if (!idCheck.checked || !idCheck.available) {
+        alert('아이디 중복 확인을 먼저 완료해주세요.');
+        return;
+      }
      try{
        // [백엔드 연동] API 주소
        const response = await fetch('https://capcoder-backendauth.onrender.com/api/member/regist.do', {
@@ -188,7 +314,7 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
            name: signupForm.name,
            gender: signupForm.gender,
            // 백엔드 DTO 필드명에 맞게 'birth'로 보냄
-           birth: `${signupForm.birthYear}-${signupForm.birthMonth.padStart(2, '0')}-${signupForm.birthDay.padStart(2, '0')}`,
+           birthDate: `${signupForm.birthYear}-${signupForm.birthMonth.padStart(2, '0')}-${signupForm.birthDay.padStart(2, '0')}`, // 'birth' -> 'birthDate'
            height: signupForm.height,
            weight: signupForm.weight,
          }),
@@ -241,13 +367,13 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
         </div>
       </div>
       <div className="input-group">
-        <label>생년월일</label>
-        <div className="birth-group">
-          <input name="birthYear" type="number" placeholder="YYYY" value={signupForm.birthYear} onChange={handleSignupChange} />
-          <input name="birthMonth" type="number" placeholder="MM" value={signupForm.birthMonth} onChange={handleSignupChange} />
-          <input name="birthDay" type="number" placeholder="DD" value={signupForm.birthDay} onChange={handleSignupChange} />
-        </div>
-      </div>
+        <label>생년월일</label>
+        <div className="birth-group">
+          <input name="birthYear" type="number" placeholder="YYYY" value={signupForm.birthYear} onChange={handleSignupChange} />
+          <input name="birthMonth" type="number" placeholder="MM" value={signupForm.birthMonth} onChange={handleSignupChange} />
+          <input name="birthDay" type="number" placeholder="DD" value={signupForm.birthDay} onChange={handleSignupChange} />
+        </div>
+      </div>
       <div className="input-group">
         <label htmlFor="height">키 (cm)</label>
         <input name="height" type="number" value={signupForm.height} onChange={handleSignupChange} />
@@ -257,13 +383,36 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
         <input name="weight" type="number" value={signupForm.weight} onChange={handleSignupChange} />
       </div>
       <div className="input-group">
-        <label htmlFor="id">ID</label>
-        <input name="id" type="text" value={signupForm.id} onChange={handleSignupChange} />
-      </div>
+        <label htmlFor="id">ID</label>
+        <div className="id-check-group">
+          <input
+            name="id"
+            type="text"
+            value={signupForm.id}
+            onChange={handleSignupChange}
+          />
+          <button
+            onClick={handleIdCheck}
+            disabled={isCheckingId}
+            className="id-check-button"
+          >
+            {isCheckingId ? '확인 중' : '중복 확인'}
+          </button>
+        </div>
+        {/* 중복 확인 결과 메시지 표시 */}
+        {idCheck.message && (
+          <p
+            className="id-check-message"
+            style={{ color: idCheck.available ? 'green' : 'red' }}
+          >
+            {idCheck.message}
+          </p>
+        )}
+      </div>
       <div className="input-group">
-        <label htmlFor="pw">PW</label>
-        <input name="pw" type="password" value={signupForm.pw} onChange={handleSignupChange} />
-      </div>
+        <label htmlFor="pw">PW</label>
+        <input name="pw" type="password" value={signupForm.pw} onChange={handleSignupChange} />
+      </div>
       <button className="auth-button" onClick={handleSignup}>
         가입하기
       </button>
@@ -316,6 +465,8 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
     height: '',
     weight: '',
     birthYear: '',
+    birthMonth: '', 
+    birthDay: '',
     mealText: '',
   });
   const [mealInputType, setMealInputType] = useState<MealInputType>('text');
@@ -335,6 +486,8 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
         height: userInfo.height,
         weight: userInfo.weight,
         birthYear: userInfo.birthYear,
+        birthMonth: userInfo.birthMonth, 
+        birthDay: userInfo.birthDay,     
       }));
     } else {
       // 로그아웃 시: 폼을 초기값으로 리셋
@@ -343,6 +496,8 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
         height: '',
         weight: '',
         birthYear: '',
+        birthMonth: '', 
+        birthDay: '',   
         mealText: '',
       });
     }
@@ -363,47 +518,82 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
     }
   };
 
-  const handleSubmit = () => {
-    setIsLoading(true);
-    setPredictedGlucose(null);
-    setGlucoseStatus(null); 
+  // 함수를 async로 변경
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setPredictedGlucose(null);
+    setGlucoseStatus(null); 
 
-    const apiFormData = new FormData();
-    // ... (폼 데이터 append 로직은 동일)
-    apiFormData.append('gender', formData.gender);
-    apiFormData.append('height', formData.height);
-    apiFormData.append('weight', formData.weight);
-    apiFormData.append('birthYear', formData.birthYear);
-    if (mealInputType === 'text') apiFormData.append('mealText', formData.mealText);
-    else if (mealFile) apiFormData.append('mealPhoto', mealFile);
+    const apiFormData = new FormData();
+    apiFormData.append('gender', formData.gender);
+    apiFormData.append('height', formData.height);
+    apiFormData.append('weight', formData.weight);
+    apiFormData.append('birthYear', formData.birthYear);
+    // (참고: 텍스트/사진 데이터는 아래 분기에서 추가)
 
-    console.log('예측 요청 데이터:', Object.fromEntries(apiFormData.entries()));
+    try {
+      if (mealInputType === 'text') {
+        // --- [텍스트 입력] ---
+        // TODO: 백엔드 담당자에게 '텍스트'로 식단을 보냈을 때의
+        // API 주소와 형식을 받아야 합니다.
+        // (예: /api/gemini/textdb ?)
+        
+        console.error("아직 '직접 입력' API가 연동되지 않았습니다.");
+        alert("현재 '사진 첨부' 기능만 사용 가능합니다. (텍스트 API 연동 필요)");
 
-    setTimeout(() => {
-      const randomGlucose = Math.floor(Math.random() * 121) + 100;
-      setPredictedGlucose(randomGlucose);
+        // (임시로 가짜 데이터 로직을 남겨둡니다)
+        setTimeout(() => {
+          const randomGlucose = 150; // 가짜 데이터
+          setPredictedGlucose(randomGlucose);
+          setGlucoseStatus('pre-diabetic');
+          onNewPrediction({ date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }), value: randomGlucose });
+          setIsLoading(false);
+        }, 500);
 
-      let currentStatus: GlucoseStatus = 'normal';
-      if (randomGlucose <= 140) {
-        currentStatus = 'normal';
-      } else if (randomGlucose <= 199) {
-        currentStatus = 'pre-diabetic';
-      } else {
-        currentStatus = 'danger';
-      }
-      setGlucoseStatus(currentStatus);
-      
-      // [그래프 추가] 예측 완료 시, App.tsx의 상태(History)를 업데이트
-      const now = new Date();
-      const newRecord: PredictionRecord = {
-        date: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-        value: randomGlucose,
-      };
-      onNewPrediction(newRecord); // 부모 컴포넌트로 새 기록 전달
+      } else if (mealFile) {
+        // --- [사진 첨부] ---
+        apiFormData.append('mealPhoto', mealFile); // (백엔드에서 받을 key 이름 확인 필요)
+        console.log('사진 예측 요청:', Object.fromEntries(apiFormData.entries()));
 
-      setIsLoading(false);
-    }, 2000);
-  };
+        const response = await fetch('https://capcoder-backendauth.onrender.com/api/gemini/imagedb', {
+          method: 'POST',
+          body: apiFormData, // FormData는 Content-Type을 'multipart/form-data'로 자동 설정
+        });
+
+        if (response.ok) {
+          const data = await response.json(); // { predictedGlucose: 146, status: "..." } 같은 응답 가정
+          
+          // TODO: 백엔드 응답 형식을 확인하세요. (data.value? data.glucose?)
+          const resultValue = data.predictedGlucose || 100; // 백엔드 응답 key에 맞게 수정
+          
+          setPredictedGlucose(resultValue);
+
+          // 상태 분류
+          let currentStatus: GlucoseStatus = 'normal';
+          if (resultValue <= 140) currentStatus = 'normal';
+          else if (resultValue <= 199) currentStatus = 'pre-diabetic';
+          else currentStatus = 'danger';
+          setGlucoseStatus(currentStatus);
+          
+          // 기록 추가
+          onNewPrediction({
+            date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            value: resultValue,
+          });
+        } else {
+          alert('사진 분석 중 오류가 발생했습니다.');
+        }
+        setIsLoading(false);
+      } else {
+        alert('식단 정보를 입력(또는 첨부)해주세요.');
+        setIsLoading(false);
+      }
+    } catch(error) {
+      console.error('예측 API 오류:', error);
+      alert('예측 중 오류가 발생했습니다.');
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="main-container">
@@ -423,9 +613,13 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
         </div>
       </div>
       <div className="input-group">
-        <label htmlFor="birthYear">태어난 연도</label>
-        <input name="birthYear" type="number" placeholder="YYYY" value={formData.birthYear} onChange={handleInputChange} />
-      </div>
+        <label>생년월일</label>
+        <div className="birth-group">
+          <input name="birthYear" type="number" placeholder="YYYY" value={formData.birthYear} onChange={handleInputChange} />
+          <input name="birthMonth" type="number" placeholder="MM" value={formData.birthMonth} onChange={handleInputChange} />
+          <input name="birthDay" type="number" placeholder="DD" value={formData.birthDay} onChange={handleInputChange} />
+        </div>
+      </div>
       <div className="input-group">
         <label htmlFor="height">키 (cm)</label>
         <input name="height" type="number" placeholder="예: 170" value={formData.height} onChange={handleInputChange} />
@@ -533,7 +727,7 @@ const AuthModal = ({ modalPage, onPageChange, onClose, onLoginSuccess, onLogout 
   modalPage: ModalState;
   onPageChange: (page: ModalState) => void;
   onClose: () => void;
-  onLoginSuccess: () => void; // 로그인 성공 시
+  onLoginSuccess: (userInfo: UserInfo) => void; // 로그인 성공 시
   onLogout: () => void; // 로그아웃 시
 }) => {
   if (modalPage === 'hidden') {
@@ -580,6 +774,9 @@ const FloatingAuthButton = ({ isLoggedIn, onClick }: {
 /**
  * [App] 메인 앱 컴포넌트
  */
+/**
+ * [App] 메인 앱 컴포넌트
+ */
 function App() {
   // --- 상태 관리 ---
   const [modalPage, setModalPage] = useState<ModalState>('hidden');
@@ -590,6 +787,9 @@ function App() {
   // 로그인한 유저의 정보를 저장할 상태
   const [currentUserInfo, setCurrentUserInfo] = useState<UserInfo | null>(null);
   // ---
+
+  
+  // --- [ ▼ 모든 핸들러 함수를 여기로 이동 ▼ ] ---
 
   // --- 핸들러 함수 ---
   
@@ -607,21 +807,14 @@ function App() {
     setModalPage('hidden');
   };
 
-  // 로그인 성공 시 (LoginPage에서 호출)
-  const handleLoginSuccess = () => {
+  // 로그인 성공 시 (LoginPage에서 호출 또는 자동로그인)
+  const handleLoginSuccess = (userInfo: UserInfo) => { 
     setIsLoggedIn(true);
     setModalPage('hidden'); // 모달 닫기
 
     // --- [로그인 자동채우기] ---
-    // TODO: 원래는 백엔드 로그인 API 응답으로 받은 유저 정보를 저장해야 합니다.
-    // (지금은 가짜 데이터(하드코딩)로 유저 정보를 설정합니다.)
-    const fakeUserInfo: UserInfo = {
-      gender: 'female',
-      birthYear: '1995',
-      height: '165',
-      weight: '55',
-    };
-    setCurrentUserInfo(fakeUserInfo);
+    // (가짜 데이터를 삭제하고, 파라미터로 받은 실제 유저 정보를 저장)
+    setCurrentUserInfo(userInfo);
     // ---
 
     // TODO: 로그인 성공 시, 백엔드에서 이 유저의 과거 예측 기록을 불러와
@@ -633,7 +826,7 @@ function App() {
     ]);
   };
 
-  // 로그아웃 시 (MyPage에서 호출)
+  // 로그아웃 시 (MyPage에서 호출 또는 자동로그인 실패)
   const handleLogout = () => {
     setIsLoggedIn(false);
     setModalPage('hidden'); // 모달 닫기
@@ -644,6 +837,9 @@ function App() {
     setCurrentUserInfo(null);
     // ---
     
+    // [추가됨] 브라우저에 저장된 토큰 삭제
+    localStorage.removeItem('authToken');
+
     alert('로그아웃되었습니다.');
   };
 
@@ -656,6 +852,67 @@ function App() {
       // (POST /api/v1/predictions)
     }
   };
+
+  // --- [ ▲ 핸들러 함수 끝 ▲ ] ---
+
+
+  // [추가됨] 앱이 처음 로드될 때(새로고침 시) 토큰을 확인하는 로직
+  // (모든 핸들러 함수가 정의된 '이후'에 실행되어야 함)
+  useEffect(() => {
+    // 브라우저 저장소에서 토큰을 가져옴
+    const token = localStorage.getItem('authToken');
+
+    // 토큰이 존재하면, 이 토큰이 유효한지 확인하고 유저 정보를 가져옴
+    if (token) {
+      const fetchUserInfoOnLoad = async () => {
+        try {
+          // 2단계: 유저 정보 API 호출 (토큰 보내기)
+          const userInfoResponse = await fetch('https://capcoder-backendauth.onrender.com/api/member/userInfo.do', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (userInfoResponse.ok) {
+            // 성공: 유저 정보를 받아와서 로그인 처리
+            const userInfoData = await userInfoResponse.json();
+            
+            // [수정] birthDate를 Y, M, D로 분해
+            const [year, month, day] = (userInfoData.birthDate || '---').split('-');
+
+            const userInfoFromBackend: UserInfo = {
+              gender: userInfoData.gender === 'female' ? 'female' : 'male',
+              // [수정] Y, M, D를 각각 저장
+              birthYear: year !== '-' ? year : '',
+              birthMonth: month !== '-' ? month : '',
+              birthDay: day !== '-' ? day : '',
+              height: String(userInfoData.height || ''),
+              weight: String(userInfoData.weight || ''),
+            };
+            // App의 로그인 성공 함수를 호출 (state 업데이트)
+            handleLoginSuccess(userInfoFromBackend);
+          } else {
+            // 실패: 토큰이 만료되었거나 유효하지 않음 -> 강제 로그아웃
+            console.log('유효하지 않은 토큰, 자동 로그아웃 처리');
+            // handleLogout(); // <- 로그아웃 알림이 뜨는 것을 방지하기 위해 alert를 뺌
+            setIsLoggedIn(false);
+            setCurrentUserInfo(null);
+            localStorage.removeItem('authToken');
+          }
+        } catch (error) {
+          console.error('자동 로그인 중 오류 발생:', error);
+          // handleLogout(); // <- 오류 시에도 알림 없이 로그아웃
+          setIsLoggedIn(false);
+          setCurrentUserInfo(null);
+          localStorage.removeItem('authToken');
+        }
+      };
+
+      fetchUserInfoOnLoad();
+    }
+  }, []); // '[]'는 이 useEffect가 앱 실행 시 딱 한 번만 실행되게 함
+
 
   return (
     <div className="App">

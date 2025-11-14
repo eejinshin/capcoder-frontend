@@ -398,3 +398,46 @@
 .logout-button:hover {
   background-color: #d32f2f;
 }
+
+/* --- [8] ID 중복 확인 버튼 (SignupPage) --- */
+
+/* ID 입력창과 버튼을 가로로 묶음 */
+.id-check-group {
+  display: flex;
+  gap: 0.5rem; /* 버튼과의 간격 */
+}
+
+.id-check-group input {
+  flex: 1; /* 입력창이 남은 공간 다 차지 */
+}
+
+/* 중복 확인 버튼 */
+.id-check-button {
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  background-color: #555; /* 어두운 회색 */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap; /* 버튼 글자 줄바꿈 방지 */
+  transition: background-color 0.2s;
+}
+
+.id-check-button:hover:not(:disabled) {
+  background-color: #333;
+}
+
+.id-check-button:disabled {
+  background-color: #aaa; /* 비활성화 시 */
+  cursor: not-allowed;
+}
+
+/* 중복 확인 메시지 (사용 가능/불가능) */
+.id-check-message {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  /* 폼 아래 간격이 너무 벌어지지 않도록 조정 */
+  margin-bottom: -1rem; 
+}
