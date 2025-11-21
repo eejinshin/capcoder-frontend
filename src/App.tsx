@@ -331,50 +331,54 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
   );
 };
 
-// [New] 캘린더 페이지 (월 이동 기능 추가됨)
+// [New] 캘린더 페이지 (진짜 달력 로직 적용)
 const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
-  // 선택된 날짜 (상세 그래프용)
   const [selectedDate, setSelectedDate] = useState<string>('');
   
   // 현재 달력에 보여줄 기준 날짜 (년/월 이동용)
   const [viewDate, setViewDate] = useState(new Date());
 
   useEffect(() => {
-    // 처음 켜질 때 오늘 날짜 자동 선택
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     setSelectedDate(todayStr);
   }, []);
 
-  // 1. 월 이동 핸들러
   const moveMonth = (direction: number) => {
     const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + direction, 1);
     setViewDate(newDate);
   };
 
-  // 2. 현재 보고 있는 달의 정보
   const viewYear = viewDate.getFullYear();
   const viewMonth = viewDate.getMonth() + 1;
 
-  // 3. 그 달의 마지막 날짜 구하기 (28, 30, 31일 자동 계산)
+  // 1. 그 달의 마지막 날짜 구하기 (28~31)
   const daysInCurrentMonth = new Date(viewYear, viewMonth, 0).getDate();
+  
+  // 2. 그 달의 1일이 무슨 요일인지 구하기 (0:일요일 ~ 6:토요일)
+  const firstDayOfMonth = new Date(viewYear, viewMonth - 1, 1).getDay();
+
+  // 3. 날짜 배열 만들기
   const daysArray = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
+  
+  // 4. 앞쪽 빈칸 배열 만들기
+  const emptySlots = Array.from({ length: firstDayOfMonth }, (_, i) => i);
+
+  const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
   // 선택된 날짜의 데이터 필터링 & 시간순 정렬
   const dailyData = history
     .filter(record => record.fullDate === selectedDate)
     .sort((a, b) => a.displayTime.localeCompare(b.displayTime));
 
-  // 혈당 수치에 따른 색상 결정
   const getDotColor = (val: number) => {
-    if (val > 199) return '#f44336'; // 빨강
-    if (val > 140) return '#ffc107'; // 주황
-    return '#4caf50'; // 초록
+    if (val > 199) return '#f44336';
+    if (val > 140) return '#ffc107';
+    return '#4caf50';
   };
 
   return (
     <div className="calendar-container">
-      {/* 헤더: < 2025년 11월 > */}
       <div className="calendar-header">
         <button className="nav-btn" onClick={() => moveMonth(-1)}>&lt;</button>
         <h2>{viewYear}년 {viewMonth}월</h2>
@@ -382,11 +386,21 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
       </div>
       
       <div className="calendar-grid">
+        {/* 요일 헤더 (일~토) */}
+        {WEEKDAYS.map((day, idx) => (
+          <div key={day} className={`weekday-header ${idx === 0 ? 'sunday' : idx === 6 ? 'saturday' : ''}`}>
+            {day}
+          </div>
+        ))}
+
+        {/* 1일 전까지 빈칸 채우기 */}
+        {emptySlots.map(i => (
+          <div key={`empty-${i}`} className="empty-day"></div>
+        ))}
+
+        {/* 실제 날짜 버튼들 */}
         {daysArray.map(day => {
-          // 날짜 문자열 생성 (YYYY-MM-DD)
           const dateStr = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          
-          // 해당 날짜의 기록 가져오기
           const dayRecords = history.filter(r => r.fullDate === dateStr);
           
           return (
@@ -396,8 +410,6 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
               onClick={() => setSelectedDate(dateStr)}
             >
               <span className="day-number">{day}</span>
-              
-              {/* 점 표시 */}
               <div className="dots-container">
                 {dayRecords.map((record, idx) => (
                   <div 
@@ -502,16 +514,26 @@ const MainPage = ({ onNewPrediction, userInfo }: { onNewPrediction: (record: Pre
       if (resultValue > 199) status = 'danger'; else if (resultValue > 140) status = 'pre-diabetic';
       setGlucoseStatus(status);
 
+      // ... 위쪽 코드 생략 ...
+
+      // 1. 현재 시간 가져오기
       const now = new Date();
-      const fullDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       
-      // [수정] 3. 24시간제 적용 (hour12: false)
-      const displayTime = now.toLocaleTimeString('ko-KR', { 
+      // 2. [계산] 현재 시간 + 2시간 (날짜 넘어가는 것도 알아서 계산됨)
+      const futureDate = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+
+      // 3. [중요] 계산된 'futureDate'를 기준으로 날짜 문자열 만들기
+      // (이렇게 해야 23시에 먹으면 다음날 캘린더에 저장됨)
+      const fullDate = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+      
+      // 4. 시간 문자열 만들기 (오후 01:00 -> 13:00)
+      const displayTime = futureDate.toLocaleTimeString('ko-KR', { 
         hour: '2-digit', 
         minute: '2-digit', 
-        hour12: false // <-- 여기가 핵심! (오후 01:00 -> 13:00)
+        hour12: false 
       });
       
+      // 5. 저장
       onNewPrediction({ fullDate, displayTime, value: resultValue });
 
     } catch (error) { console.error(error); alert('예측 중 오류 발생'); }
