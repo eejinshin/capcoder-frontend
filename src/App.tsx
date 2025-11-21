@@ -557,9 +557,20 @@ const MainPage = ({ onNewPrediction, isLoggedIn, history, userInfo }: {
     });
   };
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setMealFile(e.target.files[0]);
+      const file = e.target.files[0] 
+      setMealFile(file);
+
+      // 미리보기용 URL 생성
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+
+      // 이전 응답 초기화
+      setPredictedGlucose(null);
+      setGlucoseStatus(null);
     }
   };
 
@@ -639,9 +650,10 @@ const handleSubmit = async () => {
 
         setIsLoading(false);
         return;
-      } else if (mealFile) {
+      } 
+      else if (mealFile && mealInputType === 'photo') {
         // --- [사진 첨부] ---
-        apiFormData.append('mealPhoto', mealFile); // (백엔드에서 받을 key 이름 확인 필요)
+        apiFormData.append('image', mealFile); // (백엔드에서 받을 key 이름 확인 필요)
         console.log('사진 예측 요청:', Object.fromEntries(apiFormData.entries()));
 
         const response = await fetch('https://capcoder-backendauth.onrender.com/api/gemini/imagedb', {
@@ -649,12 +661,34 @@ const handleSubmit = async () => {
           body: apiFormData, // FormData는 Content-Type을 'multipart/form-data'로 자동 설정
         });
 
-        if (response.ok) {
-          const data = await response.json(); // { predictedGlucose: 146, status: "..." } 같은 응답 가정
-          
-          // TODO: 백엔드 응답 형식을 확인하세요. (data.value? data.glucose?)
-          const resultValue = data.predictedGlucose || 100; // 백엔드 응답 key에 맞게 수정
-          
+        if (!response.ok) {
+          console.error("이미지 API 응답 오류:", response.status);
+          alert("사진 분석 중 오류가 발생했습니다.");
+          setIsLoading(false);
+          return;
+        }
+
+        const raw = await response.text();
+
+        // 앞뒤의 ```json, ``` 제거
+        const cleaned = raw
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+
+        // 디버깅
+        console.log("정리된 텍스트:", cleaned);
+
+        // JSON 파싱
+        const jsonData = JSON.parse(cleaned);
+        console.log("파싱된 JSON:", jsonData);
+
+        // TODO: 백엔드 응답 형식을 확인하세요. (data.value? data.glucose?)
+          const resultValue =
+          jsonData && typeof jsonData.predictedGlucose === "number"
+            ? jsonData.predictedGlucose
+            : 100; // 임시 기본값
+
           setPredictedGlucose(resultValue);
 
           // 상태 분류
@@ -669,14 +703,12 @@ const handleSubmit = async () => {
             date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
             value: resultValue,
           });
-        } else {
-          alert('사진 분석 중 오류가 발생했습니다.');
-        }
+          setIsLoading(false);
+          return;
+        } 
+
+        alert('사진 분석 중 오류가 발생했습니다.');
         setIsLoading(false);
-      } else {
-        alert('식단 정보를 입력(또는 첨부)해주세요.');
-        setIsLoading(false);
-      }
     } catch(error) {
       console.error('예측 API 오류:', error);
       alert('예측 중 오류가 발생했습니다.');
@@ -743,13 +775,26 @@ const handleSubmit = async () => {
             style={{ marginTop: '1rem' }}
           />
         ) : (
-          <input
-            name="mealPhoto"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ marginTop: '1rem' }}
-          />
+          <div>
+            <input
+              name="mealPhoto"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ marginTop: '1rem' }}
+            />
+
+            {/* HTML의 미리보기 영역 */}
+            {previewUrl && (
+              <div className="preview" style={{ marginTop: "1rem" }}>
+                <h3>미리보기</h3>
+                <img
+                  src={previewUrl}
+                  alt="미리보기"
+                  style={{ maxWidth: "200px", display: "block" }}/>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
