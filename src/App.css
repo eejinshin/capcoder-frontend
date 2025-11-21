@@ -1,43 +1,41 @@
 /* --- [1] 전역 스타일 & 가운데 정렬 --- */
 .App {
-  display: flex; /* Flexbox 레이아웃 사용 */
-  justify-content: center; /* 자식 요소를 가로축(수평) 중앙에 정렬 */
-  align-items: flex-start; /* 자식 요소를 세로축(수직) 상단에 정렬 (flex-start) */
-  min-height: 100vh; /* 화면 전체 높이를 최소 높이로 설정 */
-  padding: 5vh 1rem; /* 화면 상단 여백 및 좌우 여백 */
-  background-color: #f4f7f6; /* 앱 전체 배경색 */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 0; /* 모바일 뷰에서는 상단 패딩 제거 */
+  background-color: #f4f7f6;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
-
 
 /* --- [2] 메인 예측 페이지 --- */
 .main-container {
   width: 100%;
-  max-width: 500px; /* 폼의 최대 너비 고정 */
+  max-width: 500px;
   padding: 2.5rem;
   background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  min-height: 100vh; /* 화면 꽉 차게 */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
 }
 
 .main-container h1 {
   text-align: center;
-  margin-top: 0;
+  margin-top: 1rem;
   margin-bottom: 2rem;
   color: #333;
 }
 
-/* 식단 입력 (직접 입력 / 사진 첨부) 버튼 그룹 */
+/* 식단 입력 버튼 그룹 */
 .meal-input-group {
   display: flex;
   margin-bottom: 0.5rem;
 }
 
 .meal-input-group button {
-  flex: 1; /* 1:1 비율로 공간 차지 */
+  flex: 1;
   padding: 0.75rem;
   border: 1px solid #ddd;
   background-color: #f9f9f9;
@@ -57,7 +55,6 @@
   border-bottom-right-radius: 8px;
 }
 
-/* 활성화된 버튼 스타일 */
 .meal-input-group button.active {
   background-color: #007aff;
   color: white;
@@ -112,7 +109,7 @@
 .result-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #007aff; /* 기본 색상 (파란색) */
+  color: #007aff;
   margin: 0;
 }
 
@@ -123,45 +120,38 @@
   margin-left: 0.5rem;
 }
 
-
-/* --- [3] 플로팅 버튼 (로그인/회원가입) --- */
+/* --- [3] 플로팅 버튼 (로그인/회원가입 - 필요시 사용) --- */
 .floating-auth-button {
-  position: fixed; /* 화면에 고정 */
-  bottom: 2rem; /* 하단에서 2rem */
-  right: 2rem; /* 우측에서 2rem */
+  position: fixed;
+  bottom: 5rem; /* 네비게이션 바 위로 올림 */
+  right: 2rem;
   width: 60px;
   height: 60px;
-  border-radius: 50%; /* 원형 버튼 */
+  border-radius: 50%;
   background-color: #007aff;
   color: white;
-  font-size: 1.5rem; /* 이모지 크기 */
+  font-size: 1.5rem;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: transform 0.2s ease-out;
   z-index: 900;
 }
 
-.floating-auth-button:hover {
-  transform: scale(1.1);
-}
-
-
-/* --- [4] 모달 (로그인/회원가입/마이페이지 창) --- */
+/* --- [4] 모달 (로그인/회원가입) --- */
 .modal-overlay {
-  position: fixed; /* 화면 전체 덮기 */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* 반투명 검은 배경 */
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* 최상단에 표시 */
+  z-index: 2000; /* 네비게이션 바보다 위에 */
 }
 
 .modal-content {
@@ -169,12 +159,12 @@
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  max-width: 500px; /* 모달 최대 너비 (그래프를 위해 조금 넓힘) */
-  width: 90%; /* 모바일에서는 90% */
+  max-width: 500px;
+  width: 90%;
   padding: 2.5rem;
   box-sizing: border-box;
-  max-height: 90vh; /* 모달 최대 높이 */
-  overflow-y: auto; /* 내용 길어지면 스크롤 */
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-close-button {
@@ -189,10 +179,7 @@
   line-height: 1;
 }
 
-
 /* --- [5] (공통) 입력 폼 스타일 --- */
-/* (모달과 메인 페이지에서 공통으로 사용) */
-
 .input-group {
   margin-bottom: 1.5rem;
   width: 100%;
@@ -205,23 +192,20 @@
   color: #333;
 }
 
-.input-group input[type="text"],
-.input-group input[type="password"],
-.input-group input[type="number"],
-.input-group input[type="file"] {
+.input-group input {
   width: 100%;
   padding: 0.8rem 1rem;
   font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-sizing: border-box; /* 패딩이 너비를 밀어내지 않도록 */
+  box-sizing: border-box;
 }
 
-/* 성별 라디오 버튼 */
 .radio-group {
   display: flex;
   gap: 1.5rem;
 }
+
 .radio-group label {
   font-weight: 500;
   display: flex;
@@ -230,16 +214,15 @@
   cursor: pointer;
 }
 
-/* 생년월일 입력 그룹 */
 .birth-group {
   display: flex;
   gap: 0.5rem;
 }
+
 .birth-group input {
   text-align: center;
 }
 
-/* 인증 버튼 (로그인, 회원가입) */
 .auth-button {
   width: 100%;
   padding: 1rem;
@@ -263,10 +246,12 @@
   margin-top: 1.5rem;
   font-size: 0.9rem;
 }
+
 .auth-links a {
   color: #555;
   text-decoration: none;
 }
+
 .auth-links span {
   margin: 0 0.5rem;
   color: #ccc;
@@ -278,21 +263,21 @@
   font-size: 0.95rem;
   color: #555;
 }
+
 .auth-switch a {
   color: #007aff;
   font-weight: 600;
   text-decoration: none;
 }
 
-/* --- [6] 혈당 상태 그래프 (메인 페이지용) --- */
+/* --- [6] 혈당 상태 그래프 --- */
 .status-graph-container {
   width: 100%;
   margin-top: 1.5rem;
   position: relative;
-  padding-top: 30px; /* 화살표가 들어갈 공간 */
+  padding-top: 30px;
 }
 
-/* 3색 막대 그래프 */
 .status-bar {
   display: flex;
   width: 100%;
@@ -302,24 +287,15 @@
   border: 1px solid #eee;
 }
 
-.bar-segment {
-  height: 100%;
-}
-.bar-segment.normal {
-  background-color: #4caf50; /* 초록 */
-}
-.bar-segment.pre-diabetic {
-  background-color: #ffc107; /* 노랑 */
-}
-.bar-segment.danger {
-  background-color: #f44336; /* 빨강 */
-}
+.bar-segment { height: 100%; }
+.bar-segment.normal { background-color: #4caf50; }
+.bar-segment.pre-diabetic { background-color: #ffc107; }
+.bar-segment.danger { background-color: #f44336; }
 
-/* 화살표 표시기 */
 .status-indicator {
   position: absolute;
   top: 0;
-  transform: translateX(-50%); /* 화살표 중앙 정렬 */
+  transform: translateX(-50%);
   transition: left 0.5s ease-out;
   display: flex;
   flex-direction: column;
@@ -338,7 +314,6 @@
   line-height: 0.8;
 }
 
-/* 그래프 아래 레이블 (140, 200) */
 .status-labels {
   position: relative;
   width: 100%;
@@ -352,7 +327,6 @@
   transform: translateX(-50%);
 }
 
-/* 최종 상태 텍스트 (정상, 당뇨 전단계...) */
 .status-text {
   margin-top: 1.5rem;
   font-size: 1.3rem;
@@ -360,84 +334,318 @@
   text-align: center;
 }
 
-.status-text.normal {
-  color: #4caf50;
-}
-.status-text.pre-diabetic {
-  color: #e6a100;
-}
-.status-text.danger {
-  color: #f44336;
-}
+.status-text.normal { color: #4caf50; }
+.status-text.pre-diabetic { color: #e6a100; }
+.status-text.danger { color: #f44336; }
 
-
-/* --- [7] 마이페이지 (꺾은선 그래프) --- */
+/* --- [7] 꺾은선 그래프 (공통) --- */
 .chart-wrapper {
   width: 100%;
-  /* recharts의 ResponsiveContainer가 이 높이를 기준으로 그래프를 그립니다. */
-  height: 300px; 
+  height: 300px;
   margin-top: 1.5rem;
   margin-bottom: 2rem;
-  font-size: 12px; /* 그래프 내 텍스트 폰트 크기 */
+  font-size: 12px;
 }
 
-.logout-button {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background-color: #f44336; /* 로그아웃 버튼은 빨간색으로 */
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1rem;
-}
-
-.logout-button:hover {
-  background-color: #d32f2f;
-}
-
-/* --- [8] ID 중복 확인 버튼 (SignupPage) --- */
-
-/* ID 입력창과 버튼을 가로로 묶음 */
+/* --- [8] ID 중복 확인 버튼 --- */
 .id-check-group {
   display: flex;
-  gap: 0.5rem; /* 버튼과의 간격 */
+  gap: 0.5rem;
 }
 
 .id-check-group input {
-  flex: 1; /* 입력창이 남은 공간 다 차지 */
+  flex: 1;
 }
 
-/* 중복 확인 버튼 */
 .id-check-button {
   padding: 0.8rem 1rem;
   font-size: 0.9rem;
-  background-color: #555; /* 어두운 회색 */
+  background-color: #555;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  white-space: nowrap; /* 버튼 글자 줄바꿈 방지 */
-  transition: background-color 0.2s;
-}
-
-.id-check-button:hover:not(:disabled) {
-  background-color: #333;
+  white-space: nowrap;
 }
 
 .id-check-button:disabled {
-  background-color: #aaa; /* 비활성화 시 */
+  background-color: #aaa;
   cursor: not-allowed;
 }
 
-/* 중복 확인 메시지 (사용 가능/불가능) */
 .id-check-message {
   font-size: 0.9rem;
   font-weight: 600;
   margin-top: 0.5rem;
-  /* 폼 아래 간격이 너무 벌어지지 않도록 조정 */
-  margin-bottom: -1rem; 
+  margin-bottom: -1rem;
+}
+
+/* --- [9] 하단 네비게이션 바 (화면 아래 고정) --- */
+.content-area {
+  padding-bottom: 80px; 
+  width: 100%;
+  max-width: 500px;
+}
+
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 70px; /* 높이를 살짝 키움 */
+  background-color: white;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  padding: 0 10px; /* 좌우 여백을 줘서 버튼이 너무 꽉 차지 않게 함 */
+  box-sizing: border-box; /* 패딩 포함 계산 */
+}
+
+.bottom-nav-bar button {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #ddd;       /* 선택 안 된 건 아주 연한 회색 */
+  cursor: pointer;
+  flex: 1;
+  height: 50px;      /* 버튼 높이 고정 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 15px; /* ⭐️ 배경색이 둥글게 나오도록 */
+  transition: all 0.2s ease; /* 부드러운 전환 효과 */
+  margin: 0 5px;     /* 버튼 사이 간격 */
+}
+
+/* 선택된 탭 스타일 */
+.bottom-nav-bar button.active {
+  color: #007aff;          /* 아이콘 파란색 */
+  font-size: 2rem;         /* 아이콘 살짝 커짐 */
+  background-color: #f0f4f8; /* ⭐️ 요청하신 연한 회색(살짝 푸른끼 도는) 배경 */
+  transform: translateY(-2px); /* 살짝 위로 떠오르는 효과 */
+}
+
+/* --- [10] 마이페이지 스타일 --- */
+.mypage-container {
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  box-sizing: border-box;
+  background-color: white;
+  min-height: 100vh;
+}
+
+.profile-card {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.character-area {
+  width: 100px;
+  height: 100px;
+  background-color: #f0f8ff;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.info-list {
+  margin-bottom: 2rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 1.1rem;
+}
+
+.logout-button {
+  background-color: #f44336;
+}
+
+/* --- [11] 캘린더 페이지 스타일 (업그레이드) --- */
+.calendar-container {
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  box-sizing: border-box;
+  background-color: white;
+  min-height: 100vh;
+}
+
+/* 년/월 헤더 (수정됨: 양옆 버튼 배치) */
+.calendar-header {
+  display: flex;
+  justify-content: space-between; /* 양끝 정렬 */
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 0 10px;
+}
+
+/* < > 이동 버튼 스타일 */
+.nav-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #007aff;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-weight: bold;
+}
+
+.calendar-header h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.calendar-day {
+  aspect-ratio: 1 / 1;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column; /* 날짜와 점을 세로로 배치 */
+  justify-content: flex-start;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+  padding-top: 8px; /* 날짜 숫자 위치 조정 */
+  position: relative;
+}
+
+.calendar-day:hover {
+  background-color: #f9f9f9;
+}
+
+.calendar-day.selected {
+  background-color: #007aff;
+  color: white;
+  border-color: #007aff;
+}
+
+/* 선택된 날짜일 때 점의 간격 조정 */
+.calendar-day.selected .dot {
+  border: 1px solid white; /* 파란 배경일 때 점이 잘 보이게 흰 테두리 */
+}
+
+/* 점들을 담는 컨테이너 */
+.dots-container {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 80%;
+}
+
+/* 개별 색깔 점 */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.no-data {
+  text-align: center;
+  color: #aaa;
+  margin-top: 3rem;
+}
+
+/* --- [12] 로그인 필요 화면 --- */
+.login-required-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
+  text-align: center;
+}
+
+.login-required-container .icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+
+/* --- [14] 마이페이지 수정 모드 (입력 폼) --- */
+.edit-form {
+  padding-top: 1rem;
+}
+.edit-form h3 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+.edit-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.edit-buttons button {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+.save-btn { background-color: #007aff; color: white; }
+.cancel-btn { background-color: #f0f0f0; color: #333; }
+
+
+/* 개인정보 수정하기 버튼 (텍스트 스타일) */
+.edit-mode-btn {
+  background: none;
+  border: none;
+  color: #888;        /* 회색 */
+  text-decoration: underline; /* 밑줄 */
+  font-size: 0.85rem; /* 글씨 작게 */
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;        /* 가운데 정렬을 위해 */
+  margin-top: 2rem;   /* 위쪽 간격 */
+  display: block;
+  transition: color 0.2s;
+}
+
+.edit-mode-btn:hover {
+  color: #555;        /* 마우스 올리면 진한 회색 */
+  background-color: transparent;
+}
+
+/* 로그아웃 버튼 (텍스트 스타일) */
+.logout-button {
+  background: none;
+  border: none;
+  color: #aaa;        /* 더 연한 회색 */
+  text-decoration: underline; /* 밑줄 */
+  font-size: 0.8rem;  /* 더 작게 */
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  margin-top: 0.5rem;
+  display: block;
+  transition: color 0.2s;
+}
+
+.logout-button:hover {
+  color: #d32f2f;     /* 마우스 올리면 빨간색 */
+  background-color: transparent;
 }
