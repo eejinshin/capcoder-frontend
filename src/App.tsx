@@ -12,6 +12,30 @@ import {
 } from 'recharts';
 import './App.css';
 
+// --- [아이콘 컴포넌트 (Apple Style SVGs)] ---
+const IconHome = ({ active }: { active: boolean }) => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={active ? "#007aff" : "#C7C7CC"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+  </svg>
+);
+
+const IconCalendar = ({ active }: { active: boolean }) => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={active ? "#007aff" : "#C7C7CC"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
+
+const IconUser = ({ active }: { active: boolean }) => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={active ? "#007aff" : "#C7C7CC"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+);
+
 // --- [계산 로직] ---
 type NutrientVector = {
   total_carb: number;
@@ -331,11 +355,9 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
   );
 };
 
-// [New] 캘린더 페이지 (진짜 달력 로직 적용)
+// [New] 캘린더 페이지 (애플 스타일: 대표 상태 점 하나만 표시)
 const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
   const [selectedDate, setSelectedDate] = useState<string>('');
-  
-  // 현재 달력에 보여줄 기준 날짜 (년/월 이동용)
   const [viewDate, setViewDate] = useState(new Date());
 
   useEffect(() => {
@@ -351,30 +373,25 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
 
   const viewYear = viewDate.getFullYear();
   const viewMonth = viewDate.getMonth() + 1;
-
-  // 1. 그 달의 마지막 날짜 구하기 (28~31)
   const daysInCurrentMonth = new Date(viewYear, viewMonth, 0).getDate();
-  
-  // 2. 그 달의 1일이 무슨 요일인지 구하기 (0:일요일 ~ 6:토요일)
   const firstDayOfMonth = new Date(viewYear, viewMonth - 1, 1).getDay();
-
-  // 3. 날짜 배열 만들기
   const daysArray = Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1);
-  
-  // 4. 앞쪽 빈칸 배열 만들기
   const emptySlots = Array.from({ length: firstDayOfMonth }, (_, i) => i);
-
   const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-  // 선택된 날짜의 데이터 필터링 & 시간순 정렬
   const dailyData = history
     .filter(record => record.fullDate === selectedDate)
     .sort((a, b) => a.displayTime.localeCompare(b.displayTime));
 
-  const getDotColor = (val: number) => {
-    if (val > 199) return '#f44336';
-    if (val > 140) return '#ffc107';
-    return '#4caf50';
+  // [핵심] 그날의 '대표 색상' 결정 로직 (위험 > 주의 > 정상 순서)
+  const getDayStatusColor = (records: PredictionRecord[]) => {
+    if (records.length === 0) return null;
+    // 1. 하나라도 위험(200 이상)이 있으면 빨강
+    if (records.some(r => r.value > 199)) return 'var(--ios-danger)';
+    // 2. 위험은 없지만 주의(140 이상)가 있으면 주황
+    if (records.some(r => r.value > 140)) return 'var(--ios-warning)';
+    // 3. 나머지는 초록
+    return 'var(--ios-success)';
   };
 
   return (
@@ -386,22 +403,18 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
       </div>
       
       <div className="calendar-grid">
-        {/* 요일 헤더 (일~토) */}
         {WEEKDAYS.map((day, idx) => (
-          <div key={day} className={`weekday-header ${idx === 0 ? 'sunday' : idx === 6 ? 'saturday' : ''}`}>
+          <div key={day} className={`weekday-header ${idx === 0 ? 'sunday' : ''}`}>
             {day}
           </div>
         ))}
 
-        {/* 1일 전까지 빈칸 채우기 */}
-        {emptySlots.map(i => (
-          <div key={`empty-${i}`} className="empty-day"></div>
-        ))}
+        {emptySlots.map(i => <div key={`empty-${i}`} className="empty-day"></div>)}
 
-        {/* 실제 날짜 버튼들 */}
         {daysArray.map(day => {
           const dateStr = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const dayRecords = history.filter(r => r.fullDate === dateStr);
+          const dotColor = getDayStatusColor(dayRecords);
           
           return (
             <button
@@ -410,15 +423,10 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
               onClick={() => setSelectedDate(dateStr)}
             >
               <span className="day-number">{day}</span>
-              <div className="dots-container">
-                {dayRecords.map((record, idx) => (
-                  <div 
-                    key={idx} 
-                    className="dot"
-                    style={{ backgroundColor: getDotColor(record.value) }}
-                  />
-                ))}
-              </div>
+              {/* 기록이 있을 때만 점 하나 표시 */}
+              {dotColor && (
+                <div className="dot" style={{ backgroundColor: dotColor }} />
+              )}
             </button>
           );
         })}
@@ -441,10 +449,10 @@ const CalendarPage = ({ history }: { history: PredictionRecord[] }) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        ) : (
-          <p className="no-data">이 날짜의 기록이 없습니다.</p>
-        )}
+        ) : <p className="no-data">이 날짜의 기록이 없습니다.</p>}
       </div>
+
+      <div style={{ height: '150px', width: '100%' }}></div>
     </div>
   );
 };
@@ -514,7 +522,6 @@ const MainPage = ({ onNewPrediction, userInfo }: { onNewPrediction: (record: Pre
       if (resultValue > 199) status = 'danger'; else if (resultValue > 140) status = 'pre-diabetic';
       setGlucoseStatus(status);
 
-      // ... 위쪽 코드 생략 ...
 
       // 1. 현재 시간 가져오기
       const now = new Date();
@@ -541,7 +548,6 @@ const MainPage = ({ onNewPrediction, userInfo }: { onNewPrediction: (record: Pre
   };
 
   return (
-    // ... (MainPage의 JSX 부분은 동일하므로 생략하거나 그대로 둠) ...
     <div className="main-container">
         {/* (기존 JSX 코드 그대로 유지) */}
         <h1>혈당 예측</h1>
@@ -662,24 +668,36 @@ function App() {
         )}
       </div>
 
+      {/* 3. 하단 고정 네비게이션 바 (아이콘 교체됨) */}
       <nav className="bottom-nav-bar">
         <button 
           className={currentTab === 'main' ? 'active' : ''} 
           onClick={() => setCurrentTab('main')}
         >
-          🏠
+          <div className="nav-icon-wrapper">
+            <IconHome active={currentTab === 'main'} />
+            <span className="nav-label">홈</span>
+          </div>
         </button>
+        
         <button 
           className={currentTab === 'calendar' ? 'active' : ''} 
           onClick={() => setCurrentTab('calendar')}
         >
-          📅
+          <div className="nav-icon-wrapper">
+            <IconCalendar active={currentTab === 'calendar'} />
+            <span className="nav-label">기록</span>
+          </div>
         </button>
+        
         <button 
           className={currentTab === 'mypage' ? 'active' : ''} 
           onClick={() => setCurrentTab('mypage')}
         >
-          👤
+          <div className="nav-icon-wrapper">
+            <IconUser active={currentTab === 'mypage'} />
+            <span className="nav-label">마이</span>
+          </div>
         </button>
       </nav>
 

@@ -1,659 +1,588 @@
-/* --- [1] 전역 스타일 & 가운데 정렬 --- */
+/* --- [1] 전역 스타일 (Apple Health Style) --- */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+:root {
+  --ios-blue: #007AFF;
+  --ios-bg: #F2F2F7;       /* 아이폰 설정화면 배경색 */
+  --ios-card: #FFFFFF;     /* 카드 흰색 */
+  --ios-gray-input: #E5E5EA; /* 입력창 회색 */
+  --ios-text-primary: #000000;
+  --ios-text-secondary: #8E8E93;
+  --ios-danger: #FF3B30;
+  --ios-success: #34C759;
+  --ios-warning: #FF9500;
+}
+
 .App {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
   min-height: 100vh;
-  padding: 0; /* 모바일 뷰에서는 상단 패딩 제거 */
-  background-color: #f4f7f6;
+  background-color: var(--ios-bg);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
+  color: var(--ios-text-primary);
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* --- [2] 메인 예측 페이지 --- */
-.main-container {
+button, input, select {
+  font-family: inherit;
+  letter-spacing: -0.3px;
+}
+
+/* --- [2] 메인 컨테이너 (수정됨: 높이 꽉 채우기) --- */
+.main-container, .mypage-container, .calendar-container {
   width: 100%;
-  max-width: 500px;
-  padding: 2.5rem;
-  background-color: white;
-  min-height: 100vh; /* 화면 꽉 차게 */
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  max-width: 450px; /* 아이폰 Pro Max 너비 */
+  
+  /* [중요] 화면 높이 꽉 채우고 남은 공간 흰색으로 유지 */
+  min-height: 100vh; 
+  
+  padding: 20px 20px 120px 20px; /* 하단 탭바 공간 넉넉히 확보 */
+  background-color: var(--ios-card); /* 배경색 흰색 */
+  
   box-sizing: border-box;
-}
-
-.main-container h1 {
-  text-align: center;
-  margin-top: 1rem;
-  margin-bottom: 2rem;
-  color: #333;
-}
-
-/* 식단 입력 버튼 그룹 */
-.meal-input-group {
   display: flex;
-  margin-bottom: 0.5rem;
+  flex-direction: column;
+  
+  /* [중요] 내용이 적어도 화면 중앙 정렬 안 하고 위에서부터 채움 */
+  justify-content: flex-start; 
 }
 
-.meal-input-group button {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  background-color: #f9f9f9;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.meal-input-group button:first-of-type {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-  border-right: none;
-}
-
-.meal-input-group button:last-of-type {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
-.meal-input-group button.active {
-  background-color: #007aff;
-  color: white;
-  border-color: #007aff;
-}
-
-/* 예측하기 버튼 */
-.predict-button {
+/* 만약 배경색이 회색(bg-color)이 삐져나온다면 이걸로 덮기 */
+.content-area {
   width: 100%;
-  padding: 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background-color: #007aff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1.5rem;
-}
-
-.predict-button:disabled {
-  background-color: #a0a0a0;
-  cursor: not-allowed;
-}
-
-.predict-button:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-/* 결과 표시 영역 */
-.result-container {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.result-container h2 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #555;
-  font-size: 1.2rem;
-}
-
-.result-placeholder {
-  color: #888;
-  font-style: italic;
-}
-
-.result-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #007aff;
-  margin: 0;
-}
-
-.result-value span {
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #333;
-  margin-left: 0.5rem;
-}
-
-/* --- [3] 플로팅 버튼 (로그인/회원가입 - 필요시 사용) --- */
-.floating-auth-button {
-  position: fixed;
-  bottom: 5rem; /* 네비게이션 바 위로 올림 */
-  right: 2rem;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #007aff;
-  color: white;
-  font-size: 1.5rem;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 900;
+  background-color: var(--ios-bg); /* 전체 배경 회색 */
+  min-height: 100vh;
 }
 
-/* --- [4] 모달 (로그인/회원가입) --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000; /* 네비게이션 바보다 위에 */
-}
-
-.modal-content {
-  position: relative;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  max-width: 500px;
-  width: 90%;
-  padding: 2.5rem;
-  box-sizing: border-box;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1.5rem;
-  background: none;
-  border: none;
-  font-size: 2rem;
-  color: #aaa;
-  cursor: pointer;
-  line-height: 1;
-}
-
-/* --- [5] (공통) 입력 폼 스타일 --- */
+/* --- [3] 카드형 섹션 (입력폼 등) --- */
+/* 모든 입력 그룹을 감싸는 흰색 카드 스타일 */
 .input-group {
-  margin-bottom: 1.5rem;
-  width: 100%;
+  margin-bottom: 20px;
 }
 
 .input-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
+  font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--ios-text-secondary);
+  text-transform: uppercase; /* 소제목처럼 */
+  margin-left: 12px;
 }
 
-.input-group input {
+/* 입력창 (아이폰 스타일: 회색 배경, 테두리 없음) */
+.input-group input, .input-group select {
   width: 100%;
-  padding: 0.8rem 1rem;
-  font-size: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--ios-card); /* 흰색 배경 */
+  font-size: 17px;
+  color: var(--ios-text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 아주 옅은 그림자 */
   box-sizing: border-box;
 }
 
-.radio-group {
-  display: flex;
-  gap: 1.5rem;
+.input-group input:focus, .input-group select:focus {
+  outline: none;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
 }
 
-.radio-group label {
-  font-weight: 500;
+/* --- [4] 선택 버튼 (성별, 식단 등) - 정렬 수정됨 --- */
+.radio-group, .meal-input-group {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  background-color: #E5E5EA; /* 트랙 배경색 */
+  padding: 3px; /* 안쪽 여백 살짝 키움 */
+  border-radius: 10px;
+  margin-bottom: 5px;
+  height: 46px; /* 높이를 고정해서 정렬이 안 틀어지게 함 */
 }
+
+.radio-group label, .meal-input-group button {
+  flex: 1;
+  /* --- [중요] 가운데 정렬의 핵심 --- */
+  display: flex;
+  justify-content: center; /* 가로 중앙 */
+  align-items: center;     /* 세로 중앙 (이게 빠져서 그랬음) */
+  height: 100%;            /* 부모 높이 꽉 채우기 */
+  margin: 0;
+  padding: 0;              /* 패딩 제거하고 Flex로 중앙 맞춤 */
+  /* --------------------------- */
+  
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #000;
+  border: 0.5px solid transparent;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+/* 선택된 상태 */
+.radio-group label:has(input:checked),
+.meal-input-group button.active {
+  background-color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.12); /* 그림자 조금 더 진하게 */
+  border: 0.5px solid rgba(0,0,0,0.04);
+}
+
+.radio-group input { display: none; }
 
 .birth-group {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
 }
+.birth-group select { text-align: center; }
 
-.birth-group input {
-  text-align: center;
-}
-
-.auth-button {
+/* --- [5] 메인 액션 버튼 (iOS 파란 버튼) --- */
+.predict-button, .auth-button, .save-btn {
   width: 100%;
-  padding: 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background-color: #007aff;
+  padding: 16px;
+  background-color: var(--ios-blue);
   color: white;
+  font-size: 17px;
+  font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1rem;
+  margin-top: 24px;
+  transition: opacity 0.2s;
 }
 
-.auth-button:hover {
-  background-color: #0056b3;
+.predict-button:active, .auth-button:active {
+  opacity: 0.7;
 }
 
-.auth-links {
-  text-align: center;
-  margin-top: 1.5rem;
-  font-size: 0.9rem;
-}
-
-.auth-links a {
-  color: #555;
-  text-decoration: none;
-}
-
-.auth-links span {
-  margin: 0 0.5rem;
-  color: #ccc;
-}
-
-.auth-switch {
-  margin-top: 1rem;
-  text-align: center;
-  font-size: 0.95rem;
-  color: #555;
-}
-
-.auth-switch a {
-  color: #007aff;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-/* --- [6] 혈당 상태 그래프 --- */
-.status-graph-container {
-  width: 100%;
-  margin-top: 1.5rem;
-  position: relative;
-  padding-top: 30px;
-}
-
-.status-bar {
-  display: flex;
-  width: 100%;
-  height: 20px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #eee;
-}
-
-.bar-segment { height: 100%; }
-.bar-segment.normal { background-color: #4caf50; }
-.bar-segment.pre-diabetic { background-color: #ffc107; }
-.bar-segment.danger { background-color: #f44336; }
-
-.status-indicator {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  transition: left 0.5s ease-out;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.indicator-value {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.indicator-arrow {
-  font-size: 1.2rem;
-  color: #333;
-  line-height: 0.8;
-}
-
-.status-labels {
-  position: relative;
-  width: 100%;
-  height: 20px;
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.status-labels span {
-  position: absolute;
-  transform: translateX(-50%);
-}
-
-.status-text {
-  margin-top: 1.5rem;
-  font-size: 1.3rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.status-text.normal { color: #4caf50; }
-.status-text.pre-diabetic { color: #e6a100; }
-.status-text.danger { color: #f44336; }
-
-/* --- [7] 꺾은선 그래프 (공통) --- */
-.chart-wrapper {
-  width: 100%;
-  height: 300px;
-  margin-top: 1.5rem;
-  margin-bottom: 2rem;
-  font-size: 12px;
-}
-
-/* --- [8] ID 중복 확인 버튼 --- */
-.id-check-group {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.id-check-group input {
-  flex: 1;
-}
-
-.id-check-button {
-  padding: 0.8rem 1rem;
-  font-size: 0.9rem;
-  background-color: #555;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.id-check-button:disabled {
-  background-color: #aaa;
+.predict-button:disabled {
+  background-color: #D1D1D6;
+  color: #8E8E93;
   cursor: not-allowed;
 }
 
-.id-check-message {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-  margin-bottom: -1rem;
+.cancel-btn {
+  background-color: #E5E5EA;
+  color: #000;
 }
 
-/* --- [9] 하단 네비게이션 바 (화면 아래 고정) --- */
-.content-area {
-  padding-bottom: 80px; 
-  width: 100%;
-  max-width: 500px;
-}
-
-.bottom-nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 70px; /* 높이를 살짝 키움 */
-  background-color: white;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 1000;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-  padding: 0 10px; /* 좌우 여백을 줘서 버튼이 너무 꽉 차지 않게 함 */
-  box-sizing: border-box; /* 패딩 포함 계산 */
-}
-
-.bottom-nav-bar button {
-  background: none;
-  border: none;
-  font-size: 1.8rem;
-  color: #ddd;       /* 선택 안 된 건 아주 연한 회색 */
-  cursor: pointer;
-  flex: 1;
-  height: 50px;      /* 버튼 높이 고정 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 15px; /* ⭐️ 배경색이 둥글게 나오도록 */
-  transition: all 0.2s ease; /* 부드러운 전환 효과 */
-  margin: 0 5px;     /* 버튼 사이 간격 */
-}
-
-/* 선택된 탭 스타일 */
-.bottom-nav-bar button.active {
-  color: #007aff;          /* 아이콘 파란색 */
-  font-size: 2rem;         /* 아이콘 살짝 커짐 */
-  background-color: #f0f4f8; /* ⭐️ 요청하신 연한 회색(살짝 푸른끼 도는) 배경 */
-  transform: translateY(-2px); /* 살짝 위로 떠오르는 효과 */
-}
-
-/* --- [10] 마이페이지 스타일 --- */
-.mypage-container {
-  width: 100%;
-  max-width: 500px;
-  padding: 2rem;
-  box-sizing: border-box;
-  background-color: white;
-  min-height: 100vh;
-}
-
-.profile-card {
+/* --- [6] 결과 카드 (강조) --- */
+.result-container {
+  margin-top: 30px;
+  padding: 24px;
+  background-color: var(--ios-card);
+  border-radius: 20px;
   text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #eee;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.result-container h2 {
+  font-size: 15px;
+  text-align: center;
+  color: var(--ios-text-secondary);
+  margin: 0 0 10px 0;
+}
+
+.result-value {
+  font-size: 48px;
+  font-weight: 800;
+  color: #1C1C1E;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.result-value span {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ios-text-secondary);
+}
+
+.status-text {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 15px;
+}
+.status-text.normal { color: var(--ios-success); }
+.status-text.pre-diabetic { color: var(--ios-warning); }
+.status-text.danger { color: var(--ios-danger); }
+
+/* --- [7] 마이페이지 (프로필) --- */
+.profile-card {
+  background-color: var(--ios-card);
+  border-radius: 20px;
+  padding: 30px 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+/* 마이페이지 내용이 너무 위로 쏠리지 않게 조정 */
+.mypage-container {
+  justify-content: center; /* 마이페이지는 내용이 적으니 중앙 정렬이 더 예쁨 */
+  padding-bottom: 150px; /* 하단바 위로 살짝 띄우기 */
 }
 
 .character-area {
-  width: 100px;
-  height: 100px;
-  background-color: #f0f8ff;
-  border-radius: 50%;
-  margin: 0 auto 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-size: 60px;
+  margin-bottom: 10px;
 }
 
+.profile-card h2 {
+  text-align: center;
+  margin: 0;
+  font-size: 22px;
+}
+
+.sub-text {
+  font-size: 14px;
+  color: var(--ios-text-secondary);
+  margin-top: 5px;
+}
+
+/* 정보 리스트 */
 .info-list {
-  margin-bottom: 2rem;
+  background-color: var(--ios-card);
+  border-radius: 12px;
+  padding: 0 16px; /* 좌우 패딩만 */
+  margin-bottom: 20px;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
-  padding: 1rem 0;
-  border-bottom: 1px solid #f5f5f5;
-  font-size: 1.1rem;
+  padding: 16px 0;
+  border-bottom: 1px solid #E5E5EA;
+  font-size: 16px;
 }
 
-.logout-button {
-  background-color: #f44336;
+.info-item:last-child {
+  border-bottom: none;
 }
 
-/* --- [11] 캘린더 페이지 스타일 --- */
+/* --- [9] 하단 네비게이션 바 (수정됨: 정중앙 정렬) --- */
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px; /* 높이 적절히 조절 */
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0,0,0,0.1);
+  
+  display: flex;
+  justify-content: space-around;
+  
+  /* [핵심 수정] 위쪽 정렬(flex-start) -> 중앙 정렬(center)로 변경 */
+  align-items: center; 
+  
+  z-index: 1000;
+  padding-bottom: 0; /* 하단 여백 제거 */
+  padding-top: 0;    /* 상단 여백 제거 */
+}
+
+.bottom-nav-bar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex: 1;
+  height: 100%; /* 버튼이 바 높이를 꽉 채우게 */
+  display: flex;
+  justify-content: center;
+  align-items: center; /* 버튼 내부 내용도 중앙 정렬 */
+  padding: 0;
+}
+
+/* 아이콘과 글자를 감싸는 박스 */
+.nav-icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px; /* 아이콘과 글자 사이 간격 */
+  margin-top: -5px; /* 시각적으로 정중앙에 오도록 미세 조정 */
+}
+
+/* 작은 글씨 (라벨) */
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  letter-spacing: -0.2px;
+}
+
+/* 선택된 탭 스타일 */
+.bottom-nav-bar button.active .nav-label {
+  color: #007aff;
+  font-weight: 600;
+}
+
+.bottom-nav-bar button:active {
+  opacity: 0.7;
+}
+
+/* --- [9] 캘린더 --- */
 .calendar-container {
   width: 100%;
   max-width: 500px;
-  padding: 2rem;
+  padding: 20px;
   box-sizing: border-box;
-  background-color: white;
+  background-color: #fff; /* 전체 흰색 배경 */
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
+/* 1. 헤더: 더 크고 시원하게 */
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-top: 10px;
+  margin-bottom: 30px; /* 아래 여백 확보 */
   padding: 0 10px;
 }
 
 .calendar-header h2 {
-  font-size: 1.5rem;
-  color: #333;
   margin: 0;
+  font-size: 22px; /* 폰트 키움 */
+  font-weight: 800; /* 더 두껍게 */
+  color: #1c1c1e;
+  letter-spacing: -0.5px;
 }
 
 .nav-btn {
-  background: none;
+  background: #f2f2f7; /* 버튼 배경 추가 */
   border: none;
-  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* 원형 버튼 */
+  font-size: 18px;
   color: #007aff;
+  font-weight: bold;
   cursor: pointer;
-  padding: 5px 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
 }
 
+.nav-btn:hover {
+  background-color: #e5e5ea;
+}
+
+/* 2. 요일 & 날짜 그리드: 간격 넓히기 */
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr); /* 7열 */
-  gap: 5px;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 15px; /* 세로 간격 넓힘 (중요!) */
+  column-gap: 5px;
+  margin-bottom: 40px;
 }
 
-/* 요일 헤더 (일, 월, 화...) */
 .weekday-header {
   text-align: center;
-  font-weight: bold;
-  color: #666;
-  padding-bottom: 10px;
-  font-size: 0.9rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93; /* 연한 회색 */
+  margin-bottom: 10px;
 }
+.weekday-header.sunday { color: #ff3b30; }
 
-/* 일요일은 빨간색 */
-.weekday-header.sunday { color: #f44336; }
-/* 토요일은 파란색 */
-.weekday-header.saturday { color: #007aff; }
-
-/* 날짜 칸 */
 .calendar-day {
-  aspect-ratio: 1 / 1;
-  background-color: #fff;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  aspect-ratio: 1/1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   align-items: center;
-  font-weight: 600;
+  justify-content: flex-start; /* 위쪽 정렬 */
+  padding-top: 8px; /* 숫자 위치 잡기 */
+  font-size: 18px; /* 날짜 숫자 키움 */
+  font-weight: 500;
   cursor: pointer;
-  padding-top: 5px;
+  border-radius: 50%; /* 원형 */
+  border: none;
+  background-color: transparent;
+  color: #1c1c1e;
   position: relative;
+  transition: all 0.2s;
 }
 
-.calendar-day:hover { background-color: #f9f9f9; }
-
+/* 오늘 날짜나 선택된 날짜 강조 */
 .calendar-day.selected {
   background-color: #007aff;
   color: white;
-  border-color: #007aff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); /* 그림자로 입체감 */
 }
 
-/* 빈칸 (1일 이전의 날짜들) - 투명하게 처리 */
-.empty-day {
-  aspect-ratio: 1 / 1;
-}
-
+/* 상태 점 (Dot) */
 .dots-container {
   display: flex;
-  gap: 2px;
-  margin-top: 2px;
-  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
   justify-content: center;
-  width: 80%;
 }
 
 .dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
+  /* 선택된 날짜 위에서는 점이 잘 보이게 흰 테두리 */
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.8); 
+}
+
+/* 3. 하단 차트 섹션: 카드처럼 감싸기 */
+.daily-chart-section {
+  background-color: #f9f9f9; /* 연한 회색 박스 */
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03); /* 아주 얇은 테두리 느낌 */
+}
+
+.daily-chart-section h3 {
+  text-align: left;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 20px 0; /* 아래 여백 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 제목 옆에 작은 데코레이션 */
+.daily-chart-section h3::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 18px;
+  background-color: #007aff;
+  border-radius: 2px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 250px;
+  font-size: 11px;
 }
 
 .no-data {
   text-align: center;
   color: #aaa;
-  margin-top: 3rem;
+  padding: 30px 0;
+  font-size: 14px;
 }
 
-/* --- [12] 로그인 필요 화면 --- */
-.login-required-container {
+/* --- [10] 텍스트 버튼들 (수정, 로그아웃) --- */
+.edit-mode-btn, .logout-button {
+  background: none;
+  border: none;
+  width: 100%;
+  padding: 15px;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.edit-mode-btn { color: var(--ios-blue); font-weight: 600; }
+.logout-button { color: var(--ios-text-secondary); font-size: 14px; }
+
+/* --- [11] 로그인 모달 --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(5px);
+  display: flex; justify-content: center; align-items: center; z-index: 2000;
+}
+
+.modal-content {
+  background: var(--ios-card);
+  width: 85%;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+/* ID 중복확인 버튼 */
+.id-check-group { display: flex; gap: 8px; }
+.id-check-button {
+  width: 80px;
+  padding: 0;
+  font-size: 13px;
+  background-color: #8E8E93;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+.id-check-message { font-size: 13px; margin-top: 5px; margin-left: 12px; }
+
+.no-data { text-align: center; color: #999; margin-top: 40px; }
+.login-required-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; }
+
+/* --- [12] 혈당 상태 그래프 (복구 및 디자인 업그레이드) --- */
+.status-graph-container {
+  width: 100%;
+  margin-top: 20px;
+  position: relative;
+  padding-top: 35px; /* 화살표 공간 확보 */
+  padding-bottom: 10px;
+}
+
+/* 3색 막대 (둥글고 두툼하게) */
+.status-bar {
+  display: flex;
+  width: 100%;
+  height: 24px; /* 높이 살짝 키움 */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); /* 안쪽 그림자로 깊이감 */
+}
+
+.bar-segment { height: 100%; }
+.bar-segment.normal { background-color: var(--ios-success); }      /* 초록 */
+.bar-segment.pre-diabetic { background-color: var(--ios-warning); } /* 주황 */
+.bar-segment.danger { background-color: var(--ios-danger); }        /* 빨강 */
+
+/* 화살표 표시기 (애니메이션) */
+.status-indicator {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  transition: left 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 팅~ 하는 탄성 효과 */
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 70vh;
-  text-align: center;
 }
 
-.login-required-container .icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+.indicator-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 2px;
 }
 
-
-/* --- [14] 마이페이지 수정 모드 (입력 폼) --- */
-.edit-form {
-  padding-top: 1rem;
-}
-.edit-form h3 {
-  text-align: center;
-  margin-bottom: 1.5rem;
+.indicator-arrow {
+  font-size: 14px;
   color: #333;
-}
-.edit-buttons {
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-.edit-buttons button {
-  flex: 1;
-  padding: 0.8rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-.save-btn { background-color: #007aff; color: white; }
-.cancel-btn { background-color: #f0f0f0; color: #333; }
-
-
-/* 개인정보 수정하기 버튼 (텍스트 스타일) */
-.edit-mode-btn {
-  background: none;
-  border: none;
-  color: #888;        /* 회색 */
-  text-decoration: underline; /* 밑줄 */
-  font-size: 0.85rem; /* 글씨 작게 */
-  cursor: pointer;
-  padding: 10px;
-  width: 100%;        /* 가운데 정렬을 위해 */
-  margin-top: 2rem;   /* 위쪽 간격 */
-  display: block;
-  transition: color 0.2s;
+  line-height: 1;
 }
 
-.edit-mode-btn:hover {
-  color: #555;        /* 마우스 올리면 진한 회색 */
-  background-color: transparent;
-}
-
-/* 로그아웃 버튼 (텍스트 스타일) */
-.logout-button {
-  background: none;
-  border: none;
-  color: #aaa;        /* 더 연한 회색 */
-  text-decoration: underline; /* 밑줄 */
-  font-size: 0.8rem;  /* 더 작게 */
-  cursor: pointer;
-  padding: 10px;
+/* 그래프 아래 기준선 숫자 (140, 200) */
+.status-labels {
+  position: relative;
   width: 100%;
-  margin-top: 0.5rem;
-  display: block;
-  transition: color 0.2s;
+  height: 20px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ios-text-secondary);
+  font-weight: 500;
 }
 
-.logout-button:hover {
-  color: #d32f2f;     /* 마우스 올리면 빨간색 */
-  background-color: transparent;
+.status-labels span {
+  position: absolute;
+  transform: translateX(-50%);
 }
