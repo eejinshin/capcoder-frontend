@@ -98,7 +98,8 @@ button, input, select {
   padding: 3px; /* 안쪽 여백 살짝 키움 */
   border-radius: 10px;
   margin-bottom: 5px;
-  height: 46px; /* 높이를 고정해서 정렬이 안 틀어지게 함 */
+  height: 48px; /* 전체 높이를 고정해서 정렬이 안 틀어지게 함 */
+  box-sizing: border-box;
 }
 
 .radio-group label, .meal-input-group button {
@@ -106,7 +107,7 @@ button, input, select {
   /* --- [중요] 가운데 정렬의 핵심 --- */
   display: flex;
   justify-content: center; /* 가로 중앙 */
-  align-items: center;     /* 세로 중앙 (이게 빠져서 그랬음) */
+  align-items: center;     /* 세로 중앙 (이게 핵심!) */
   height: 100%;            /* 부모 높이 꽉 채우기 */
   margin: 0;
   padding: 0;              /* 패딩 제거하고 Flex로 중앙 맞춤 */
@@ -132,6 +133,7 @@ button, input, select {
 
 .radio-group input { display: none; }
 
+/* 생년월일 등 다른 입력 그룹 */
 .birth-group {
   display: flex;
   gap: 8px;
@@ -523,62 +525,69 @@ button, input, select {
 .no-data { text-align: center; color: #999; margin-top: 40px; }
 .login-required-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh; }
 
-/* --- [12] 혈당 상태 그래프 (복구 및 디자인 업그레이드) --- */
+/* --- [12] 혈당 그래프 스타일 (재설정) --- */
+
 .status-graph-container {
-  width: 100%;
-  margin-top: 20px;
   position: relative;
-  padding-top: 35px; /* 화살표 공간 확보 */
-  padding-bottom: 10px;
+  padding-top: 10px;
+  text-align: center;
 }
 
-/* 3색 막대 (둥글고 두툼하게) */
+/* 1. 그래프 래퍼 (위치 기준점) */
+.graph-wrapper {
+  position: relative;
+  margin-top: 45px; /* 화살표가 들어갈 공간 확보 */
+  margin-bottom: 10px;
+}
+
+/* 2. 사라진 막대기 복구 (높이와 색상 강제 지정) */
 .status-bar {
   display: flex;
   width: 100%;
-  height: 24px; /* 높이 살짝 키움 */
+  height: 24px; /* ⭐ 높이가 있어야 보임! */
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); /* 안쪽 그림자로 깊이감 */
+  background-color: #eee; /* 로딩 전 회색 */
 }
 
+/* 막대기 색상 (혹시 변수 안 먹을까봐 HEX 코드로 직접 지정) */
 .bar-segment { height: 100%; }
-.bar-segment.normal { background-color: var(--ios-success); }      /* 초록 */
-.bar-segment.pre-diabetic { background-color: var(--ios-warning); } /* 주황 */
-.bar-segment.danger { background-color: var(--ios-danger); }        /* 빨강 */
+.bar-segment.normal { background-color: #34C759; }      /* 초록 */
+.bar-segment.pre-diabetic { background-color: #FF9500; } /* 주황 */
+.bar-segment.danger { background-color: #FF3B30; }       /* 빨강 */
 
-/* 화살표 표시기 (애니메이션) */
+/* 3. 화살표 위치 (막대기 바로 위) */
 .status-indicator {
   position: absolute;
-  top: 0;
+  top: -38px; /* 막대기 위로 올림 */
   transform: translateX(-50%);
-  transition: left 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 팅~ 하는 탄성 효과 */
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: left 0.5s ease-out;
 }
 
 .indicator-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-main);
+  color: #333;
   margin-bottom: 2px;
 }
 
 .indicator-arrow {
-  font-size: 14px;
+  font-size: 16px;
   color: #333;
   line-height: 1;
 }
 
-/* 그래프 아래 기준선 숫자 (140, 200) */
+/* 4. 아래 숫자 라벨 (140, 200) */
 .status-labels {
   position: relative;
   width: 100%;
   height: 20px;
-  margin-top: 8px;
+  margin-top: 5px;
   font-size: 12px;
-  color: var(--ios-text-secondary);
+  color: #8e8e93;
   font-weight: 500;
 }
 
