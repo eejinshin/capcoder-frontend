@@ -505,7 +505,7 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
 
   const addFood = (food: any) => {
       const newFood: SelectedFood = {
-          name: food.name || food.desc_kor,
+          name: food.foodName,
           nutrients: { total_carb: Number(food.carbohydrates || 0), sugar: Number(food.sugars || 0), protein: Number(food.protein || 0), total_fat: Number(food.fat || 0) },
           portion: 1
       };
@@ -607,7 +607,7 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
                 </div>
                 {searchResults.length > 0 && (
                     <ul style={{border:'1px solid #eee', maxHeight:'150px', overflowY:'auto', padding:'0', listStyle:'none', marginTop:'5px'}}>
-                        {searchResults.map((food, idx) => (<li key={idx} onClick={() => addFood(food)} style={{padding:'10px', borderBottom:'1px solid #eee', cursor:'pointer'}}>{food.name || food.desc_kor}</li>))}
+                        {searchResults.map((food, idx) => (<li key={idx} onClick={() => addFood(food)} style={{padding:'10px', borderBottom:'1px solid #eee', cursor:'pointer'}}>{food.foodName}</li>))}
                     </ul>
                 )}
                 <div style={{marginTop: '15px'}}>
