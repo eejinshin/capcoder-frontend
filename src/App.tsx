@@ -29,7 +29,8 @@ const IconUser = ({ active }: { active: boolean }) => (
 // --- [2] 타입 정의 ---
 type NutrientVector = { total_carb: number; sugar: number; protein: number; total_fat: number; };
 type UserInfo = { name: string; gender: 'male' | 'female'; birthYear: string; birthMonth: string; birthDay: string; height: string; weight: string; };
-type PredictionRecord = { id?: number; fullDate: string; displayTime: string; value: number; };
+// [수정] 백엔드 데이터 형식에 맞게 logId 필드 사용 (string)
+type PredictionRecord = { id: string; fullDate: string; displayTime: string; value: number; };
 type ModalState = 'hidden' | 'login' | 'signup';
 type TabState = 'main' | 'calendar' | 'mypage';
 type MealInputType = 'text' | 'photo';
@@ -52,24 +53,12 @@ type UserFactors = {
   gender: 'male' | 'female';
 };
 
-
-// hsy
 const estimatePostMealGlucose = (nutrients: NutrientVector, user: UserFactors): number => {
   const delta = estimateGlucoseDeltaFromNutrients(nutrients);
-
-  // gender: male=1, female=0
   const genderBinary = user.gender === 'male' ? 1 : 0;
-
-  // 🔥 회귀식 기반 baseGlucose 계산
-  const baseGlucose =
-    80 +
-    (4.5885 * genderBinary) +
-    (0.0510 * user.age) +
-    (1.5263 * user.bmi);
-
-  // 최종 예측 혈당
+  const baseGlucose = 80 + (4.5885 * genderBinary) + (0.0510 * user.age) + (1.5263 * user.bmi);
   let predicted = baseGlucose + delta;
-  predicted = Math.max(80, Math.min(250, predicted)); // clamp
+  predicted = Math.max(80, Math.min(250, predicted)); 
   return Math.round(predicted);
 };
 
@@ -135,7 +124,6 @@ const LoginPage = ({ onPageChange, onLoginSuccess }: { onPageChange: (page: Moda
       const userInfoData = await userInfoResponse.json();
       const [year, month, day] = (userInfoData.birthDate || '---').split('-');
       
-      // hsy
       onLoginSuccess({
         name: userInfoData.name || '회원', gender: userInfoData.gender === 'female' ? 'female' : 'male',
         birthYear: year !== '-' ? year : '', birthMonth: month !== '-' ? month : '', birthDay: day !== '-' ? day : '',
@@ -201,7 +189,6 @@ const SignupPage = ({ onPageChange }: { onPageChange: (page: ModalState) => void
     } catch (e) { alert('오류 발생'); }
   };
 
-  // 날짜 데이터
   const currentYear = new Date().getFullYear();
   const YEARS = Array.from({ length: 100 }, (_, i) => currentYear - i);
   const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -275,7 +262,6 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
     } catch (error) { alert('서버 오류 발생'); }
   };
 
-  // 날짜 데이터
   const currentYear = new Date().getFullYear();
   const YEARS = Array.from({ length: 100 }, (_, i) => currentYear - i);
   const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -327,21 +313,18 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
   );
 };
 
-// [New] 캘린더 페이지 (애플 스타일 + 백엔드 연동 + 삭제 기능)
+// 캘린더 페이지 (애플 스타일 + 백엔드 연동 + 삭제 기능)
 const CalendarPage = () => {
-  // 1. 상태 관리 (이제 스스로 데이터를 관리합니다)
   const [history, setHistory] = useState<PredictionRecord[]>([]);
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  // 2. 초기화 (오늘 날짜 선택)
   useEffect(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     setSelectedDate(todayStr);
   }, []);
 
-  // 3. 백엔드 데이터 가져오기 (월이 바뀔 때마다 실행)
   useEffect(() => {
     const fetchLog = async () => {
       const token = localStorage.getItem('authToken');
@@ -357,13 +340,26 @@ const CalendarPage = () => {
         
         if (res.ok) {
           const data = await res.json();
-          // 백엔드 데이터를 프론트 형식으로 변환
-          const formatted = data.map((item: any) => ({
-            id: item.id, 
-            fullDate: item.date, 
-            displayTime: item.time, 
-            value: item.glucose
-          }));
+          // [수정] 백엔드 데이터(logId, glucose, logTime)를 프론트 형식으로 변환
+          const formatted = data.map((item: any) => {
+             // logTime: "2025-11-24T21:10:00" -> 날짜와 시간 분리
+             const dateObj = new Date(item.logTime);
+             const y = dateObj.getFullYear();
+             const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+             const d = String(dateObj.getDate()).padStart(2, '0');
+             const fullDate = `${y}-${m}-${d}`;
+             
+             const hh = String(dateObj.getHours()).padStart(2, '0');
+             const mm = String(dateObj.getMinutes()).padStart(2, '0');
+             const displayTime = `${hh}:${mm}`;
+
+             return {
+                id: item.logId,  // UUID 문자열 그대로 사용
+                fullDate: fullDate,
+                displayTime: displayTime,
+                value: item.glucose
+             };
+          });
           setHistory(formatted);
         }
       } catch (e) { console.error("로그 불러오기 실패", e); }
@@ -371,23 +367,33 @@ const CalendarPage = () => {
     fetchLog();
   }, [viewDate]);
 
-  // 4. 월 이동 함수
   const moveMonth = (direction: number) => {
     const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + direction, 1);
     setViewDate(newDate);
   };
 
-  // 5. 삭제 함수
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if(!window.confirm("이 기록을 삭제하시겠습니까?")) return;
-    // TODO: 백엔드 삭제 API가 나오면 주석 해제하고 연결!
-    // await fetch(`https://capcoder-backendauth.onrender.com/api/delete?id=${id}`, { method: 'DELETE' ... });
     
-    // (일단 화면에서만 지워줌)
-    setHistory(prev => prev.filter(item => item.id !== id));
+    const token = localStorage.getItem('authToken');
+    try {
+        // [수정] 실제 삭제 API 호출
+        const res = await fetch(`https://capcoder-backendauth.onrender.com/api/my/delete.do?logId=${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            // 화면에서 제거
+            setHistory(prev => prev.filter(item => item.id !== id));
+        } else {
+            alert("삭제 실패");
+        }
+    } catch (e) {
+        alert("오류 발생");
+    }
   };
 
-  // --- 달력 렌더링 로직 ---
   const viewYear = viewDate.getFullYear();
   const viewMonth = viewDate.getMonth() + 1;
   const daysInCurrentMonth = new Date(viewYear, viewMonth, 0).getDate();
@@ -396,17 +402,15 @@ const CalendarPage = () => {
   const emptySlots = Array.from({ length: firstDayOfMonth }, (_, i) => i);
   const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-  // 선택된 날짜 데이터 필터링
   const dailyData = history
     .filter(record => record.fullDate === selectedDate)
     .sort((a, b) => a.displayTime.localeCompare(b.displayTime));
 
-  // 점 색깔 결정
   const getDayStatusColor = (records: PredictionRecord[]) => {
     if (records.length === 0) return null;
-    if (records.some(r => r.value > 199)) return '#FF3B30'; // 위험
-    if (records.some(r => r.value > 140)) return '#FF9500'; // 주의
-    return '#34C759'; // 정상
+    if (records.some(r => r.value > 199)) return '#FF3B30'; 
+    if (records.some(r => r.value > 140)) return '#FF9500'; 
+    return '#34C759'; 
   };
 
   return (
@@ -444,12 +448,11 @@ const CalendarPage = () => {
         <h3>{selectedDate} 기록</h3>
         {dailyData.length > 0 ? (
           <div className="chart-wrapper">
-            {/* 목록 리스트 + 삭제 버튼 */}
             <ul style={{listStyle: 'none', padding: 0, marginBottom: '20px'}}>
                {dailyData.map((record, idx) => (
                    <li key={idx} style={{display:'flex', justifyContent:'space-between', padding:'10px', borderBottom:'1px solid #eee', fontSize:'14px'}}>
                        <span>{record.displayTime} - <strong style={{color: '#007aff'}}>{record.value}</strong></span>
-                       <button onClick={() => handleDelete(record.id!)} style={{color:'#ff3b30', border:'none', background:'none', cursor:'pointer', fontWeight:'bold'}}>삭제</button>
+                       <button onClick={() => handleDelete(record.id)} style={{color:'#ff3b30', border:'none', background:'none', cursor:'pointer', fontWeight:'bold'}}>삭제</button>
                    </li>
                ))}
             </ul>
@@ -494,7 +497,6 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
     }
   }, [userInfo]);
 
-  // hsy
   const handleSearch = async () => {
       if (!searchText.trim()) return;
       try {
@@ -527,18 +529,14 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
     }
   };
 
-  // hsy
-
   const handleSubmit = async () => {
-
     const now = new Date();
-
     const birthYearNum = Number(formData.birthYear);
     const heightM = Number(formData.height) / 100;
     const weightKg = Number(formData.weight);
 
-    const age = birthYearNum ? now.getFullYear() - birthYearNum : 40; // 기본값 40
-    const bmi = heightM > 0 ? weightKg / (heightM * heightM) : 23;    // 기본값 BMI 23
+    const age = birthYearNum ? now.getFullYear() - birthYearNum : 40; 
+    const bmi = heightM > 0 ? weightKg / (heightM * heightM) : 23;    
 
     const userFactors: UserFactors = {
       age,
@@ -546,56 +544,111 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
       gender: formData.gender === 'female' ? 'female' : 'male',
     };
 
-    setIsLoading(true); setPredictedGlucose(null); setGlucoseStatus(null);
+    setIsLoading(true);
+    setPredictedGlucose(null);
+    setGlucoseStatus(null);
+
     try {
-        let totalNutrients: NutrientVector = { total_carb: 0, sugar: 0, protein: 0, total_fat: 0 };
-        let resultValue = 0;
+      let resultValue = 0;
+      let totalNutrients: NutrientVector = { total_carb: 0, sugar: 0, protein: 0, total_fat: 0 };
 
-        if (mealInputType === 'text') {
-            if (selectedFoods.length === 0) { alert("음식을 추가해주세요."); setIsLoading(false); return; }
-            selectedFoods.forEach(food => {
-                totalNutrients.total_carb += food.nutrients.total_carb * food.portion;
-                totalNutrients.sugar += food.nutrients.sugar * food.portion;
-                totalNutrients.protein += food.nutrients.protein * food.portion;
-                totalNutrients.total_fat += food.nutrients.total_fat * food.portion;
-            });
-            resultValue = estimatePostMealGlucose(totalNutrients, userFactors);
+      if (mealInputType === 'text') {
+        if (selectedFoods.length === 0) { 
+          alert("음식을 추가해주세요."); 
+          setIsLoading(false); 
+          return; 
+        }
+        selectedFoods.forEach(food => {
+          totalNutrients.total_carb += food.nutrients.total_carb * food.portion;
+          totalNutrients.sugar += food.nutrients.sugar * food.portion;
+          totalNutrients.protein += food.nutrients.protein * food.portion;
+          totalNutrients.total_fat += food.nutrients.total_fat * food.portion;
+        });
+        resultValue = estimatePostMealGlucose(totalNutrients, userFactors);
 
-        } else if (mealFile) {
-            const apiFormData = new FormData(); apiFormData.append('image', mealFile);
-            const res = await fetch('https://capcoder-backendauth.onrender.com/api/gemini/imagedb', { method: 'POST', body: apiFormData });
-            if(res.ok) {
-                const raw = await res.text();
-                const jsonData = JSON.parse(raw.replace(/```json/g, "").replace(/```/g, "").trim());
-                if (typeof jsonData.predictedGlucose === 'number') resultValue = jsonData.predictedGlucose;
-                else {
-                    const currentNutrients = { total_carb: parseFloat(jsonData.total_carb) || 0, sugar: parseFloat(jsonData.sugar) || 0, protein: parseFloat(jsonData.protein) || 0, total_fat: parseFloat(jsonData.total_fat) || 0 };
-                    resultValue = estimatePostMealGlucose(currentNutrients, userFactors);
-                }
+      } else if (mealFile) {
+        const apiFormData = new FormData();
+        apiFormData.append('image', mealFile);
+        const res = await fetch('https://capcoder-backendauth.onrender.com/api/gemini/imagedb', { method: 'POST', body: apiFormData });
+        
+        if (res.ok) {
+            const raw = await res.text();
+            const jsonData = JSON.parse(raw.replace(/```json/g, "").replace(/```/g, "").trim());
+            
+            if (typeof jsonData.predictedGlucose === 'number') {
+                resultValue = jsonData.predictedGlucose;
+            } else {
+                const currentNutrients = { 
+                    total_carb: parseFloat(jsonData.total_carb) || 0, 
+                    sugar: parseFloat(jsonData.sugar) || 0, 
+                    protein: parseFloat(jsonData.protein) || 0, 
+                    total_fat: parseFloat(jsonData.total_fat) || 0 
+                };
+                resultValue = estimatePostMealGlucose(currentNutrients, userFactors);
             }
-        } else { alert("입력 확인 필요"); setIsLoading(false); return; }
+        } else {
+            throw new Error("이미지 분석 실패");
+        }
+      } else { 
+        alert("입력 확인 필요"); 
+        setIsLoading(false); 
+        return; 
+      }
 
-        setPredictedGlucose(resultValue);
-        let status: GlucoseStatus = 'normal';
-        if (resultValue > 199) status = 'danger'; else if (resultValue > 140) status = 'pre-diabetic';
-        setGlucoseStatus(status);
+      setPredictedGlucose(resultValue);
+      let status: GlucoseStatus = 'normal';
+      if (resultValue > 199) status = 'danger'; 
+      else if (resultValue > 140) status = 'pre-diabetic';
+      setGlucoseStatus(status);
 
-        // TODO: 백엔드 저장 API 연결 (POST)
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+          alert("⚠️ 결과는 나왔지만, 로그인이 안 되어 있어 저장되지 않았습니다.");
+          setIsLoading(false);
+          return; 
+      }
 
-    } catch (e) { console.error(e); alert("오류 발생"); }
+      if (resultValue > 0) {
+        const futureDate = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+        const fullDate = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+        const displayTime = futureDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        try {
+            const saveRes = await fetch('https://capcoder-backendauth.onrender.com/api/my/saveGlucose.do', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                date: fullDate,      
+                time: displayTime,   
+                glucose: resultValue 
+              })
+            });
+
+            if (saveRes.ok) {
+              alert(`✅ 저장 완료!\n날짜: ${fullDate}\n시간: ${displayTime}\n혈당: ${resultValue}`);
+            } else {
+              alert("❌ 저장 실패: 서버에서 오류가 발생했습니다.");
+              console.error("저장 실패 상태코드:", saveRes.status);
+            }
+        } catch (fetchError) {
+            alert("❌ 저장 중 에러 발생: 인터넷 연결을 확인하세요.");
+            console.error(fetchError);
+        }
+      }
+
+    } catch (e) { 
+      console.error(e); 
+      alert("전체 로직 오류: " + e); 
+    }
     setIsLoading(false);
   };
-
-  // 날짜 데이터
-  // const currentYear = new Date().getFullYear();
-  // const YEARS = Array.from({ length: 100 }, (_, i) => currentYear - i);
-  // MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-  // const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <div className="main-container">
       <h1>혈당 예측</h1>
-      
       <div className="input-group"><label>식단 입력</label>
         <div className="meal-input-group"><button className={mealInputType === 'text' ? 'active' : ''} onClick={() => setMealInputType('text')}>텍스트 검색</button><button className={mealInputType === 'photo' ? 'active' : ''} onClick={() => setMealInputType('photo')}>사진 첨부</button></div>
         
@@ -616,15 +669,7 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
                             <div style={{display:'flex', justifyContent:'space-between', fontWeight:'bold'}}>{food.name} <span onClick={() => removeFood(idx)} style={{color:'red', cursor:'pointer'}}>✕</span></div>
                             <div style={{marginTop:'5px', display:'flex', gap:'5px'}}>
                                 {[0.25, 0.5, 1, 2].map(p => (
-                                    <button key={p} 
-                                        onClick={() => changePortion(idx, p)}
-                                        style={{
-                                            flex: 1, padding: '5px', border: '1px solid #ddd', 
-                                            background: food.portion === p ? '#007aff' : 'white',
-                                            color: food.portion === p ? 'white' : '#333',
-                                            borderRadius: '4px', fontSize: '0.8rem'
-                                        }}
-                                    >
+                                    <button key={p} onClick={() => changePortion(idx, p)} style={{flex: 1, padding: '5px', border: '1px solid #ddd', background: food.portion === p ? '#007aff' : 'white', color: food.portion === p ? 'white' : '#333', borderRadius: '4px', fontSize: '0.8rem'}}>
                                         {p === 0.25 ? '1/4인분' : p === 0.5 ? '1/2인분' : p + '인분'}
                                     </button>
                                 ))}
@@ -684,7 +729,6 @@ function App() {
     setIsLoggedIn(false); setModalPage('hidden'); setCurrentUserInfo(null); localStorage.removeItem('authToken'); alert('로그아웃');
   };
 
-  // [누락되었던 함수 추가!]
   const handleUserInfoUpdate = (updatedUser: UserInfo) => {
     setCurrentUserInfo(updatedUser);
   };
@@ -709,7 +753,8 @@ function App() {
   return (
     <div className="App">
       <div className="content-area">
-        {currentTab === 'main' && <MainPage userInfo={currentUserInfo} />}
+        {/* [수정] 메인 페이지도 로그인 체크 */}
+        {currentTab === 'main' && (isLoggedIn ? <MainPage userInfo={currentUserInfo} /> : <LoginRequiredView onLoginClick={() => setModalPage('login')} />)}
         {currentTab === 'calendar' && (isLoggedIn ? <CalendarPage /> : <LoginRequiredView onLoginClick={() => setModalPage('login')} />)}
         {currentTab === 'mypage' && (isLoggedIn ? <MyPage userInfo={currentUserInfo} onLogout={handleLogout} onUpdateUser={handleUserInfoUpdate} /> : <LoginRequiredView onLoginClick={() => setModalPage('login')} />)}
       </div>
