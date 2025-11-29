@@ -379,7 +379,7 @@ const CalendarPage = () => {
     try {
         // [수정] 실제 삭제 API 호출
         const res = await fetch(`https://capcoder-backendauth.onrender.com/api/my/delete.do?logId=${id}`, {
-            method: 'POST',
+            method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -551,6 +551,7 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
     try {
       let resultValue = 0;
       let totalNutrients: NutrientVector = { total_carb: 0, sugar: 0, protein: 0, total_fat: 0 };
+      let mealDescription = '';
 
       if (mealInputType === 'text') {
         if (selectedFoods.length === 0) { 
@@ -564,6 +565,11 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
           totalNutrients.protein += food.nutrients.protein * food.portion;
           totalNutrients.total_fat += food.nutrients.total_fat * food.portion;
         });
+
+        // 텍스트 입력일 때 식단 설명: 선택한 음식 이름들 조합
+        mealDescription = selectedFoods
+        .map(food => `${food.name}${food.portion && food.portion !== 1 ? ` x${food.portion}` : ''}`)
+        .join(', ');
         resultValue = estimatePostMealGlucose(totalNutrients, userFactors);
 
       } else if (mealFile) {
@@ -575,6 +581,16 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
             const raw = await res.text();
             const jsonData = JSON.parse(raw.replace(/```json/g, "").replace(/```/g, "").trim());
             
+            // 이미지 분석 결과에서 식단 설명이 오면 사용
+            const items = Array.isArray(jsonData) ? jsonData : [jsonData];
+            mealDescription = items
+              .map(item => (item.meal_description || item.mealDescription || '').trim())
+              .filter(desc => desc.length > 0)
+              .join(', ');
+            if(!mealDescription) {
+              mealDescription = '이미지 기반 식단'; // fallback
+            }
+
             if (typeof jsonData.predictedGlucose === 'number') {
                 resultValue = jsonData.predictedGlucose;
             } else {
@@ -621,8 +637,7 @@ const MainPage = ({ userInfo }: { userInfo: UserInfo | null; }) => {
                 'Authorization': `Bearer ${token}`
               },
               body: JSON.stringify({
-                date: fullDate,      
-                time: displayTime,   
+                mealDescription, 
                 glucose: resultValue 
               })
             });
