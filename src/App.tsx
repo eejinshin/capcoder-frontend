@@ -29,13 +29,13 @@ const IconUser = ({ active }: { active: boolean }) => (
 // --- [2] 타입 정의 ---
 type NutrientVector = { total_carb: number; sugar: number; protein: number; total_fat: number; };
 type UserInfo = { name: string; gender: 'male' | 'female'; birthYear: string; birthMonth: string; birthDay: string; height: string; weight: string; };
-// [수정] 백엔드 데이터 형식에 맞게 logId 필드 사용 (string)
 type PredictionRecord = { id: string; fullDate: string; displayTime: string; value: number; };
 type ModalState = 'hidden' | 'login' | 'signup';
 type TabState = 'main' | 'calendar' | 'mypage';
 type MealInputType = 'text' | 'photo';
 type GlucoseStatus = 'normal' | 'pre-diabetic' | 'danger';
 type SelectedFood = { name: string; nutrients: NutrientVector; portion: number; };
+type TopMeal = { mealName: string; count: number; };
 
 // --- [3] 계산 로직 ---
 const CORR_WEIGHTS: NutrientVector = { total_carb: 0.20, sugar: 0.17, protein: 0.13, total_fat: 0.11 };
@@ -221,13 +221,18 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<UserInfo | null>(null);
   const [recommendation, setRecommendation] = useState<string>("분석 중...");
+  // [수정 1] 상위 3개 음식 저장을 위한 state 추가
+  const [topMeals, setTopMeals] = useState<TopMeal[]>([]);
 
   useEffect(() => {
     if (userInfo) {
       setEditForm(userInfo);
+      
+      const token = localStorage.getItem('authToken');
+
+      // 1. AI 추천 가져오기
       const fetchRecommendation = async () => {
         try {
-          const token = localStorage.getItem('authToken');
           const res = await fetch('https://capcoder-backendauth.onrender.com/api/gemini/recommend', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -237,7 +242,24 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
           } else setRecommendation("아직 식단 데이터가 부족해요.");
         } catch (e) { setRecommendation("추천을 불러오지 못했습니다."); }
       };
+
+      // [수정 2] Top 3 음식 가져오기 API 호출
+      const fetchTopMeals = async () => {
+        try {
+            const res = await fetch('https://capcoder-backendauth.onrender.com/api/my/topKMeal', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // 데이터가 있으면 state 업데이트
+                setTopMeals(data);
+            }
+        } catch (e) { console.error("Top 3 메뉴 로드 실패", e); }
+      };
+
       fetchRecommendation();
+      fetchTopMeals(); // 함수 실행
     }
   }, [userInfo]);
 
@@ -299,12 +321,24 @@ const MyPage = ({ userInfo, onLogout, onUpdateUser }: { userInfo: UserInfo | nul
              <h3 style={{fontSize: '1.1rem', margin: '0 0 10px 0', color: '#007aff'}}>🤖 AI 식단 조언</h3>
              <p style={{lineHeight: '1.6', fontSize: '0.95rem', color: '#333'}}>{recommendation}</p>
           </div>
+          
+          {/* [수정 3] 실제 데이터로 렌더링 변경 */}
           <div className="stats-card" style={{background: '#f9f9f9', padding: '20px', borderRadius: '20px', marginBottom: '30px'}}>
-            <h3 style={{fontSize: '1.1rem', margin: '0 0 15px 0'}}>🏆 많이 먹은 메뉴</h3>
+            <h3 style={{fontSize: '1.1rem', margin: '0 0 15px 0'}}>🏆 이번 달 최애 메뉴</h3>
             <ol style={{paddingLeft: '20px', margin: 0, lineHeight: '1.8', color: '#555'}}>
-                <li>닭가슴살 샐러드</li><li>김치찌개</li><li>현미밥</li>
+                {topMeals.length > 0 ? (
+                    topMeals.map((meal, index) => (
+                        <li key={index}>
+                            <span style={{fontWeight: 'bold', color:'#333'}}>{meal.mealName}</span> 
+                            <span style={{fontSize: '0.9rem', color: '#888', marginLeft: '6px'}}>({meal.count}회)</span>
+                        </li>
+                    ))
+                ) : (
+                    <li style={{listStyle: 'none'}}>아직 충분한 데이터가 없어요 🍽️</li>
+                )}
             </ol>
           </div>
+
           <button className="edit-mode-btn" onClick={() => setIsEditing(true)}>개인정보 수정하기</button>
           <button className="logout-button" onClick={onLogout}>로그아웃</button>
         </>
